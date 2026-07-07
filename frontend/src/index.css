@@ -1,1 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: 'Montserrat', sans-serif;
+    --font-sans: 'Inter', sans-serif;
+    
+    --color-background: var(--color-background);
+    --color-foreground: var(--color-foreground);
+    --color-surface: var(--color-surface);
+    --color-primary: var(--color-primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--color-secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-border: var(--color-border);
+    --color-text-main: var(--color-text-main);
+    --color-text-sub: var(--color-text-sub);
+
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-2xl: 1rem;
+    --radius-3xl: 1.5rem;
+    --radius-4xl: 2rem;
+}
+
+:root {
+    --color-background: #fbf9f5;
+    --color-foreground: #1b1c1a;
+    --color-surface: #ffffff;
+    --color-primary: #000000;
+    --color-secondary: #fef3c7; /* Elegant cream gold */
+    --color-border: #e4e2de;
+    --color-text-main: #1b1c1a;
+    --color-text-sub: #444748;
+
+    --background: #fbf9f5;
+    --foreground: #1b1c1a;
+    --card: #ffffff;
+    --card-foreground: #1b1c1a;
+    --popover: #ffffff;
+    --popover-foreground: #1b1c1a;
+    --primary: #000000;
+    --primary-foreground: #ffffff;
+    --secondary: #fef3c7;
+    --secondary-foreground: #000000;
+    --muted: #f1ede4;
+    --muted-foreground: #444748;
+    --accent: #fef3c7;
+    --accent-foreground: #000000;
+    --border: #e4e2de;
+    --input: #e4e2de;
+    --ring: #000000;
+    --radius: 0.5rem;
+}
+
+.dark {
+    --color-background: #181615;
+    --color-foreground: #f5f5f4;
+    --color-surface: #22201e;
+    --color-primary: #ffffff;
+    --color-secondary: #451a03;
+    --color-border: #2e2a27;
+    --color-text-main: #f5f5f4;
+    --color-text-sub: #a8a29e;
+    
+    --background: #181615;
+    --foreground: #f5f5f4;
+    --card: #22201e;
+    --card-foreground: #f5f5f4;
+    --popover: #22201e;
+    --popover-foreground: #f5f5f4;
+    --primary: #ffffff;
+    --primary-foreground: #181615;
+    --secondary: #451a03;
+    --secondary-foreground: #f5f5f4;
+    --muted: #2e2a27;
+    --muted-foreground: #a8a29e;
+    --border: #2e2a27;
+    --input: #2e2a27;
+    --ring: #ffffff;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-text-main font-sans transition-colors duration-300;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
