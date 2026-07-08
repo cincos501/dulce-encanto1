@@ -89,7 +89,7 @@ class ProductService
         $product = $this->findById($id);
 
         // Business Rule: Cannot delete product if any of its variants are linked to registered orders
-        $hasOrders = $product->variants()->whereHas('orderItemExtras')->exists();
+        $hasOrders = $product->variants()->whereHas('orderItems')->exists();
 
         // Wait, order items references product_variants directly, let's verify if we have orderItemExtras or orderItems.
         // Wait! Let's check relation name on ProductVariant.php!
@@ -129,14 +129,16 @@ class ProductService
             if (method_exists($variant, 'extras')) {
                 $variant->extras()->detach();
             }
+            // Detach promotions pivot
+            if (method_exists($variant, 'promotions')) {
+                $variant->promotions()->detach();
+            }
+            // Delete variant images
+            if (method_exists($variant, 'images')) {
+                $variant->images()->delete();
+            }
             $variant->delete();
         }
-
-        // Detach promotions if any exists
-        $product->promotions()->detach();
-
-        // Delete images
-        $product->images()->delete();
 
         return $this->productRepository->delete($product);
     }

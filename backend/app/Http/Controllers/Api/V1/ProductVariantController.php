@@ -37,12 +37,12 @@ class ProductVariantController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Variantes recuperadas con éxito.',
-                'data' => ProductVariantResource::collection($variants->load('product')),
+                'data' => ProductVariantResource::collection($variants->load(['product', 'extras'])),
             ]);
         }
 
         $variants = $this->variantService->paginate($perPage, $search, $productId);
-        $variants->getCollection()->load('product');
+        $variants->getCollection()->load(['product', 'extras']);
 
         return ProductVariantResource::collection($variants)->additional([
             'success' => true,
@@ -58,7 +58,7 @@ class ProductVariantController extends Controller
         $dto = ProductVariantDTO::fromArray($request->validated());
         $variant = $this->variantService->create($dto);
 
-        return (new ProductVariantResource($variant->load('product')))->additional([
+        return (new ProductVariantResource($variant->load(['product', 'extras'])))->additional([
             'success' => true,
             'message' => 'Variante de producto creada con éxito.',
         ]);
@@ -71,7 +71,7 @@ class ProductVariantController extends Controller
     {
         $variant = $this->variantService->findById($id);
 
-        return (new ProductVariantResource($variant->load('product')))->additional([
+        return (new ProductVariantResource($variant->load(['product', 'extras'])))->additional([
             'success' => true,
             'message' => 'Variante recuperada con éxito.',
         ]);
@@ -85,7 +85,7 @@ class ProductVariantController extends Controller
         $dto = ProductVariantDTO::fromArray($request->validated());
         $variant = $this->variantService->update($id, $dto);
 
-        return (new ProductVariantResource($variant->load('product')))->additional([
+        return (new ProductVariantResource($variant->load(['product', 'extras'])))->additional([
             'success' => true,
             'message' => 'Variante actualizada con éxito.',
         ]);
@@ -98,7 +98,7 @@ class ProductVariantController extends Controller
     {
         $variant = $this->variantService->toggleActive($id);
 
-        return (new ProductVariantResource($variant->load('product')))->additional([
+        return (new ProductVariantResource($variant->load(['product', 'extras'])))->additional([
             'success' => true,
             'message' => 'Estado de la variante actualizado con éxito.',
         ]);

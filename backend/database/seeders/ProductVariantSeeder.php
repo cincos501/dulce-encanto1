@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Extra;
 use Illuminate\Database\Seeder;
 
 class ProductVariantSeeder extends Seeder
@@ -15,51 +16,76 @@ class ProductVariantSeeder extends Seeder
      */
     public function run(): void
     {
-        $variantsData = [
+        $variantsMap = [
             'Torta Selva Negra' => [
-                ['name' => 'Personal', 'base_price' => 5.50],
-                ['name' => '8 porciones', 'base_price' => 20.00],
+                ['name' => 'Porción', 'base_price' => 3.50],
+                ['name' => 'Torta completa', 'base_price' => 25.00],
             ],
             'Torta Tres Leches' => [
-                ['name' => 'Personal', 'base_price' => 6.00],
-                ['name' => '12 porciones', 'base_price' => 24.50],
+                ['name' => 'Porción', 'base_price' => 3.80],
+                ['name' => 'Torta completa', 'base_price' => 28.00],
             ],
-            'Brazo Gitano de Chocolate' => [
-                ['name' => 'Pequeño', 'base_price' => 8.00],
-                ['name' => 'Grande', 'base_price' => 15.00],
+            'Cupcake de Vainilla' => [
+                ['name' => 'Unidad', 'base_price' => 2.00],
+                ['name' => 'Caja x6', 'base_price' => 10.00],
             ],
-            'Brazo Gitano de Frutilla' => [
-                ['name' => 'Pequeño', 'base_price' => 7.50],
-                ['name' => 'Grande', 'base_price' => 14.50],
+            'Cupcake de Red Velvet' => [
+                ['name' => 'Unidad', 'base_price' => 2.50],
+                ['name' => 'Caja x6', 'base_price' => 12.00],
+            ],
+            'Galletas de Chispas' => [
+                ['name' => 'Unidad', 'base_price' => 1.50],
+                ['name' => 'Paquete x6', 'base_price' => 7.00],
+            ],
+            'Galletas de Avena y Miel' => [
+                ['name' => 'Unidad', 'base_price' => 1.80],
+                ['name' => 'Paquete x6', 'base_price' => 8.50],
+            ],
+            'Cheesecake de Frutilla' => [
+                ['name' => 'Porción', 'base_price' => 4.00],
+                ['name' => 'Entero', 'base_price' => 32.00],
+            ],
+            'Pie de Limón' => [
+                ['name' => 'Porción', 'base_price' => 3.50],
+                ['name' => 'Entero', 'base_price' => 28.00],
             ],
         ];
 
-        foreach ($variantsData as $productName => $variants) {
+        $extras = Extra::all();
+
+        foreach ($variantsMap as $productName => $variants) {
             $product = Product::where('name', $productName)->first();
             if (! $product) {
                 continue;
             }
 
             foreach ($variants as $var) {
-                // To maintain idempotency, search by product_id and name
-                $existing = ProductVariant::where('product_id', $product->id)
-                    ->where('name', $var['name'])
-                    ->first();
+                $sku = $this->generateUniqueSku($productName, $var['name']);
 
-                if ($existing) {
-                    $existing->update([
-                        'base_price' => $var['base_price'],
-                        'is_active' => true,
-                    ]);
-                } else {
-                    $sku = $this->generateUniqueSku($productName, $var['name']);
-                    ProductVariant::create([
-                        'product_id' => $product->id,
-                        'name' => $var['name'],
-                        'sku' => $sku,
-                        'base_price' => $var['base_price'],
-                        'is_active' => true,
-                    ]);
+                // Create the variant
+                $variant = ProductVariant::create([
+                    'product_id' => $product->id,
+                    'name' => $var['name'],
+                    'sku' => $sku,
+                    'base_price' => $var['base_price'],
+                    'is_active' => true,
+                ]);
+
+                // Create 1 primary image for the variant
+                // Use a clean and valid placeholder image
+                $variant->images()->create([
+                    'image_url' => 'https://placehold.co/600x600?text=' . urlencode($product->name . ' (' . $variant->name . ')'),
+                    'is_primary' => true,
+                ]);
+
+                // Snychronize 2-3 random extras
+                if ($extras->isNotEmpty()) {
+                    $randomExtras = $extras->random(rand(2, 3));
+                    $syncData = [];
+                    foreach ($randomExtras as $extra) {
+                        $syncData[$extra->id] = ['extra_price' => $extra->price];
+                    }
+                    $variant->extras()->sync($syncData);
                 }
             }
         }

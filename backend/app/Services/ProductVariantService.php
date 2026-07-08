@@ -60,7 +60,18 @@ class ProductVariantService
         $data = $dto->toArray();
         $data['sku'] = $sku;
 
-        return $this->variantRepository->create($data);
+        $variant = $this->variantRepository->create($data);
+
+        $syncData = [];
+        if (!empty($dto->extra_ids)) {
+            $extras = \App\Models\Extra::whereIn('id', $dto->extra_ids)->get();
+            foreach ($extras as $extra) {
+                $syncData[$extra->id] = ['extra_price' => $extra->price];
+            }
+        }
+        $variant->extras()->sync($syncData);
+
+        return $variant;
     }
 
     /**
@@ -74,7 +85,18 @@ class ProductVariantService
         // Do not update SKU, keep the original one
         $data['sku'] = $variant->sku;
 
-        return $this->variantRepository->update($variant, $data);
+        $updatedVariant = $this->variantRepository->update($variant, $data);
+
+        $syncData = [];
+        if (!empty($dto->extra_ids)) {
+            $extras = \App\Models\Extra::whereIn('id', $dto->extra_ids)->get();
+            foreach ($extras as $extra) {
+                $syncData[$extra->id] = ['extra_price' => $extra->price];
+            }
+        }
+        $updatedVariant->extras()->sync($syncData);
+
+        return $updatedVariant;
     }
 
     /**
@@ -109,6 +131,12 @@ class ProductVariantService
         }
         if (method_exists($variant, 'extras')) {
             $variant->extras()->detach();
+        }
+        if (method_exists($variant, 'promotions')) {
+            $variant->promotions()->detach();
+        }
+        if (method_exists($variant, 'images')) {
+            $variant->images()->delete();
         }
 
         return $this->variantRepository->delete($variant);

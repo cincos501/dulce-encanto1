@@ -44,12 +44,4 @@ class Product extends Model
     {
         return $this->hasMany(ProductVariant::class);
     }
-
-    /**
-     * Get the promotions for the product.
-     */
-    public function promotions(): BelongsToMany
-    {
-        return $this->belongsToMany(Promotion::class, 'product_promotions');
-    }
 }

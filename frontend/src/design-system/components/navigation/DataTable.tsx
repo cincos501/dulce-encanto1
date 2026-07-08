@@ -3,7 +3,7 @@ import { cn } from '@/shared/utils/cn'
 
 export interface ColumnDef<T> {
   header: string;
-  cell: (item: T) => React.ReactNode;
+  cell: (item: T, index: number) => React.ReactNode;
   headerClassName?: string;
   cellClassName?: string;
 }
@@ -75,7 +75,7 @@ export function DataTable<T>({
                     key={colIndex} 
                     className={cn('px-6 py-3.5 font-medium', col.cellClassName)}
                   >
-                    {col.cell(item)}
+                    {col.cell(item, rowIndex)}
                   </td>
                 ))}
               </tr>

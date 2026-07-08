@@ -323,7 +323,6 @@ export default function Menu() {
                             }`}
                           >
                             <div className="font-bold text-xs text-primary">{v.name}</div>
-                            <div className="text-[9px] text-text-sub font-mono font-bold mt-0.5">{v.sku}</div>
                           </button>
                         )
                       })}

@@ -49,6 +49,14 @@ class ProductVariantRequest extends FormRequest
                 'gt:0',
             ],
             'is_active' => ['nullable', 'boolean'],
+            'extra_ids' => [
+                'nullable',
+                'array',
+            ],
+            'extra_ids.*' => [
+                'integer',
+                'exists:extras,id',
+            ],
         ];
     }
 

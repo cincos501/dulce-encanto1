@@ -30,7 +30,14 @@ class CatalogController extends Controller
             ->with([
                 'category',
                 'variants' => static function ($q): void {
-                    $q->where('is_active', true)->with(['images']);
+                    $q->where('is_active', true)->with([
+                        'images',
+                        'promotions' => static function ($promoQ): void {
+                            $promoQ->where('is_active', true)
+                                ->where('start_date', '<=', now())
+                                ->where('end_date', '>=', now());
+                        },
+                    ]);
                 },
             ])
             ->get();
@@ -58,6 +65,13 @@ class CatalogController extends Controller
                 }
             }
 
+            $promotions = collect();
+            foreach ($product->variants as $variant) {
+                foreach ($variant->promotions as $promo) {
+                    $promotions->put($promo->id, $promo);
+                }
+            }
+
             return [
                 'id' => $product->id,
                 'name' => $product->name,
@@ -65,6 +79,13 @@ class CatalogController extends Controller
                 'category' => $product->category->name,
                 'min_price' => $minPrice !== null ? (float) $minPrice : 0.00,
                 'image' => $primaryImage,
+                'promotions' => $promotions->values()->map(static fn ($promo) => [
+                    'id' => $promo->id,
+                    'name' => $promo->name,
+                    'description' => $promo->description,
+                    'discount_type' => $promo->discount_type,
+                    'discount' => (float) $promo->discount,
+                ])->all(),
             ];
         });
 
@@ -92,12 +113,12 @@ class CatalogController extends Controller
                         'extras' => static function ($extQ): void {
                             $extQ->where('is_active', true);
                         },
+                        'promotions' => static function ($promoQ): void {
+                            $promoQ->where('is_active', true)
+                                ->where('start_date', '<=', now())
+                                ->where('end_date', '>=', now());
+                        },
                     ]);
-                },
-                'promotions' => static function ($q): void {
-                    $q->where('is_active', true)
-                        ->where('start_date', '<=', now())
-                        ->where('end_date', '>=', now());
                 },
             ])
             ->findOrFail($id);
@@ -146,13 +167,15 @@ class CatalogController extends Controller
                     'price' => (float) $variant->base_price,
                 ]),
                 'extras' => $extras->values()->all(),
-                'promotions' => $product->promotions->map(static fn ($promo) => [
+                'promotions' => collect($product->variants)->flatMap(static function ($v) {
+                    return $v->promotions;
+                })->unique('id')->values()->map(static fn ($promo) => [
                     'id' => $promo->id,
                     'name' => $promo->name,
                     'description' => $promo->description,
                     'discount_type' => $promo->discount_type,
                     'discount' => (float) $promo->discount,
-                ]),
+                ])->all(),
             ],
         ]);
     }

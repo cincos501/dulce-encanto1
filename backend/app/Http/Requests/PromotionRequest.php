@@ -41,6 +41,8 @@ class PromotionRequest extends FormRequest
             'start_date' => ['required', 'date_format:Y-m-d H:i:s'],
             'end_date' => ['required', 'date_format:Y-m-d H:i:s', 'after_or_equal:start_date'],
             'is_active' => ['nullable', 'boolean'],
+            'product_variant_ids' => ['nullable', 'array'],
+            'product_variant_ids.*' => ['integer', 'exists:product_variants,id'],
         ];
     }
 

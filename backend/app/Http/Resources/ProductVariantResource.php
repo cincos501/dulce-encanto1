@@ -24,6 +24,7 @@ class ProductVariantResource extends JsonResource
             'sku' => $this->sku,
             'base_price' => (float) $this->base_price,
             'is_active' => (bool) $this->is_active,
+            'extras' => ExtraResource::collection($this->whenLoaded('extras')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

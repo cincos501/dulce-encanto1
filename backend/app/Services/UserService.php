@@ -142,4 +142,24 @@ class UserService
 
         return $user;
     }
+
+    /**
+     * Toggle the active state of a user.
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function toggleActive(int $id): User
+    {
+        $user = $this->findById($id);
+        $currentUser = Auth::user();
+
+        if ($currentUser && $currentUser->id === $user->id) {
+            throw new \InvalidArgumentException('No puedes desactivar tu propia cuenta de usuario.');
+        }
+
+        $user->is_active = ! $user->is_active;
+        $user->save();
+
+        return $user;
+    }
 }

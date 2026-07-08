@@ -29,7 +29,7 @@ class PromotionController extends Controller
         $paginate = filter_var($request->query('paginate', true), FILTER_VALIDATE_BOOLEAN);
 
         if (! $paginate) {
-            $promotions = $this->promotionService->all();
+            $promotions = $this->promotionService->all()->load('variants.product');
 
             return response()->json([
                 'success' => true,
@@ -39,6 +39,7 @@ class PromotionController extends Controller
         }
 
         $promotions = $this->promotionService->paginate($perPage, $search);
+        $promotions->getCollection()->load('variants.product');
 
         return PromotionResource::collection($promotions)->additional([
             'success' => true,
@@ -53,9 +54,9 @@ class PromotionController extends Controller
     {
         try {
             $dto = PromotionDTO::fromArray($request->validated());
-            $promotion = $this->promotionService->create($dto);
+            $promotion = $this->promotionService->create($dto, $request->input('product_variant_ids', []));
 
-            return (new PromotionResource($promotion))->additional([
+            return (new PromotionResource($promotion->load('variants.product')))->additional([
                 'success' => true,
                 'message' => 'Promoción creada con éxito.',
             ]);
@@ -73,7 +74,7 @@ class PromotionController extends Controller
      */
     public function show(int $id): PromotionResource
     {
-        $promotion = $this->promotionService->findById($id);
+        $promotion = $this->promotionService->findById($id)->load('variants.product');
 
         return (new PromotionResource($promotion))->additional([
             'success' => true,
@@ -88,9 +89,9 @@ class PromotionController extends Controller
     {
         try {
             $dto = PromotionDTO::fromArray($request->validated());
-            $promotion = $this->promotionService->update($id, $dto);
+            $promotion = $this->promotionService->update($id, $dto, $request->input('product_variant_ids', []));
 
-            return (new PromotionResource($promotion))->additional([
+            return (new PromotionResource($promotion->load('variants.product')))->additional([
                 'success' => true,
                 'message' => 'Promoción actualizada con éxito.',
             ]);
@@ -111,7 +112,7 @@ class PromotionController extends Controller
         try {
             $promotion = $this->promotionService->toggleActive($id);
 
-            return (new PromotionResource($promotion))->additional([
+            return (new PromotionResource($promotion->load('variants.product')))->additional([
                 'success' => true,
                 'message' => 'Estado de la promoción actualizado con éxito.',
             ]);

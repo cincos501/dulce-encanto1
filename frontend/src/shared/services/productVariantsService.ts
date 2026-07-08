@@ -6,6 +6,7 @@ export interface ProductVariantInput {
   name: string;
   base_price: number;
   is_active?: boolean;
+  extra_ids?: number[];
 }
 
 const productVariantsService = {

@@ -53,25 +53,31 @@ class PromotionService
     /**
      * Create a new promotion.
      */
-    public function create(PromotionDTO $dto): Promotion
+    public function create(PromotionDTO $dto, array $variantIds = []): Promotion
     {
         $this->validateBusinessRules($dto->discount_type, $dto->discount, $dto->start_date, $dto->end_date);
 
-        return $this->promotionRepository->create($dto->toArray());
+        $promotion = $this->promotionRepository->create($dto->toArray());
+        $promotion->variants()->sync($variantIds);
+
+        $this->validateOverlap($promotion);
+
+        return $promotion;
     }
 
     /**
      * Update an existing promotion.
      */
-    public function update(int $id, PromotionDTO $dto): Promotion
+    public function update(int $id, PromotionDTO $dto, array $variantIds = []): Promotion
     {
         $promotion = $this->findById($id);
 
         $this->validateBusinessRules($dto->discount_type, $dto->discount, $dto->start_date, $dto->end_date);
 
         $updated = $this->promotionRepository->update($promotion, $dto->toArray());
+        $updated->variants()->sync($variantIds);
 
-        // Validate overlap for linked products
+        // Validate overlap for linked variants
         $this->validateOverlap($updated);
 
         return $updated;
@@ -111,8 +117,8 @@ class PromotionService
             throw new \Exception('No se puede eliminar una promoción activa que se encuentra actualmente en curso. Desactívela primero.');
         }
 
-        // Clean associations from product promotions pivot
-        $promotion->products()->detach();
+        // Clean associations from product variant promotions pivot
+        $promotion->variants()->detach();
 
         return $this->promotionRepository->delete($promotion);
     }
@@ -147,16 +153,16 @@ class PromotionService
             return;
         }
 
-        $productIds = $promotion->products()->pluck('products.id')->toArray();
-        if (empty($productIds)) {
+        $variantIds = $promotion->variants()->pluck('product_variants.id')->toArray();
+        if (empty($variantIds)) {
             return;
         }
 
-        foreach ($productIds as $productId) {
+        foreach ($variantIds as $variantId) {
             $overlappingPromotionExists = Promotion::where('is_active', true)
                 ->where('id', '!=', $promotion->id)
-                ->whereHas('products', static function ($query) use ($productId): void {
-                    $query->where('products.id', $productId);
+                ->whereHas('variants', static function ($query) use ($variantId): void {
+                    $query->where('product_variants.id', $variantId);
                 })
                 ->where(static function ($query) use ($promotion): void {
                     $query->whereBetween('start_date', [$promotion->start_date, $promotion->end_date])
@@ -169,7 +175,7 @@ class PromotionService
                 ->exists();
 
             if ($overlappingPromotionExists) {
-                throw new \RuntimeException("El producto ID {$productId} ya cuenta con otra promoción activa durante este mismo período de tiempo. Evite inconsistencias inactivando el solapamiento.");
+                throw new \RuntimeException("La presentación de producto ID {$variantId} ya cuenta con otra promoción activa durante este mismo período de tiempo. Evite inconsistencias inactivando el solapamiento.");
             }
         }
     }

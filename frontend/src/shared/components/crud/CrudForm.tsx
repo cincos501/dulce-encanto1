@@ -10,6 +10,7 @@ export interface CrudFormProps<TFieldValues extends FieldValues = FieldValues> {
   submitLabel?: string;
   cancelLabel?: string;
   isPending?: boolean;
+  children?: React.ReactNode;
 }
 
 export function CrudForm<TFieldValues extends FieldValues = FieldValues>({
@@ -19,7 +20,8 @@ export function CrudForm<TFieldValues extends FieldValues = FieldValues>({
   onCancel,
   submitLabel = 'Guardar',
   cancelLabel = 'Cancelar',
-  isPending = false
+  isPending = false,
+  children
 }: CrudFormProps<TFieldValues>) {
   const { register, handleSubmit, formState: { errors } } = form
 
@@ -42,6 +44,8 @@ export function CrudForm<TFieldValues extends FieldValues = FieldValues>({
           )
         })}
       </div>
+
+      {children}
 
       <div className="flex items-center justify-end gap-3 border-t border-stone-100 pt-5">
         <Button

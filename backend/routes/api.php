@@ -86,6 +86,7 @@ Route::prefix('v1')->group(function () {
             Route::put('/{user}', [UserController::class, 'update'])->middleware('permission:users.manage')->name('users.update');
             Route::delete('/{user}', [UserController::class, 'destroy'])->middleware('permission:users.manage')->name('users.destroy');
             Route::put('/{user}/reset-password', [UserController::class, 'resetPassword'])->middleware('permission:users.manage')->name('users.reset-password');
+            Route::patch('/{user}/toggle-active', [UserController::class, 'toggleActive'])->middleware('permission:users.manage')->name('users.toggle-active');
         });
     });
 });

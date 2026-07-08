@@ -142,8 +142,8 @@ export default function Extras() {
   // Columns definition
   const columns = [
     {
-      header: 'ID',
-      cell: (item: Extra) => <span className="font-bold text-text-sub/60">#{item.id}</span>
+      header: 'Número',
+      cell: (_item: Extra, index: number) => <span className="font-sans font-bold text-text-sub/60">{(page - 1) * perPage + index + 1}</span>
     },
     {
       header: 'Nombre',

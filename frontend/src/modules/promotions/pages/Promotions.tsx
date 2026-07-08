@@ -12,10 +12,11 @@ import {
   CrudDeleteDialog, 
   CrudStatusBadge 
 } from '@/shared/components/crud'
-import { Badge, Button } from '@/design-system'
+import { Badge, Button, Typography } from '@/design-system'
 import promotionsService from '@/shared/services/promotionsService'
+import productVariantsService from '@/shared/services/productVariantsService'
 import { useAuthorization } from '@/shared/hooks/useAuthorization'
-import { Promotion } from '@/shared/types'
+import { Promotion, ProductVariant } from '@/shared/types'
 import { formatToLocalInput, formatToBackendDate } from '@/shared/utils/dateFormatter'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 
@@ -45,6 +46,7 @@ export default function Promotions() {
   const [search, setSearch] = useState<string>('')
   const [page, setPage] = useState<number>(1)
   const perPage = 10
+  const [selectedVariantIds, setSelectedVariantIds] = useState<number[]>([])
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false)
@@ -67,6 +69,16 @@ export default function Promotions() {
   })
 
   // Queries
+  const { data: variantsData } = useQuery({
+    queryKey: ['variants-list-promotions'],
+    queryFn: async () => {
+      const response = await productVariantsService.getAll()
+      return response.data?.data || []
+    }
+  })
+
+  const allVariants = (variantsData as ProductVariant[]) || []
+
   const { data: queryData, isLoading } = useQuery({
     queryKey: ['promotions', page, search],
     queryFn: async () => {
@@ -84,7 +96,8 @@ export default function Promotions() {
       const payload = {
         ...data,
         start_date: formatToBackendDate(data.start_date),
-        end_date: formatToBackendDate(data.end_date)
+        end_date: formatToBackendDate(data.end_date),
+        product_variant_ids: selectedVariantIds
       }
       if (editingPromotion) {
         return promotionsService.update(editingPromotion.id, payload)
@@ -128,6 +141,7 @@ export default function Promotions() {
   // Handlers
   const openCreateModal = () => {
     setEditingPromotion(null)
+    setSelectedVariantIds([])
     form.reset({
       name: '',
       description: '',
@@ -142,6 +156,7 @@ export default function Promotions() {
 
   const openEditModal = (promotion: Promotion) => {
     setEditingPromotion(promotion)
+    setSelectedVariantIds((promotion.variants || []).map(v => v.id))
     form.reset({
       name: promotion.name,
       description: promotion.description || '',
@@ -163,8 +178,8 @@ export default function Promotions() {
   // Columns definition
   const columns = [
     {
-      header: 'ID',
-      cell: (item: Promotion) => <span className="font-bold text-text-sub/60">#{item.id}</span>
+      header: 'Número',
+      cell: (_item: Promotion, index: number) => <span className="font-sans font-bold text-text-sub/60">{(page - 1) * perPage + index + 1}</span>
     },
     {
       header: 'Nombre',
@@ -324,7 +339,43 @@ export default function Promotions() {
             onSubmit={(data) => saveMutation.mutate(data)}
             onCancel={closeFormModal}
             isPending={saveMutation.isPending}
-          />
+          >
+            {/* VARIANT PICKER */}
+            <div className="bg-surface border border-border/80 p-5 rounded-lg space-y-3">
+              <Typography variant="label" className="text-xs uppercase tracking-wider font-bold">Presentaciones de Producto Asociadas</Typography>
+              <p className="text-text-sub text-[10px]">Selecciona los tamaños y productos que tendrán este descuento aplicado.</p>
+              
+              <div className="max-h-48 overflow-y-auto divide-y divide-border border border-border rounded-lg bg-background/50">
+                {allVariants.length === 0 ? (
+                  <p className="p-4 text-center text-[10px] text-text-sub/50 italic font-semibold">Cargando presentaciones de productos...</p>
+                ) : (
+                  allVariants.map((variant) => (
+                    <div key={variant.id} className="flex items-center gap-2 p-2.5 hover:bg-stone-100/50 transition-colors animate-fade-in">
+                      <input
+                        type="checkbox"
+                        id={`variant-${variant.id}`}
+                        checked={selectedVariantIds.includes(variant.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedVariantIds(prev => [...prev, variant.id])
+                          } else {
+                            setSelectedVariantIds(prev => prev.filter(id => id !== variant.id))
+                          }
+                        }}
+                        className="w-3.5 h-3.5 text-primary border-border rounded focus:ring-stone-250/20"
+                      />
+                      <label htmlFor={`variant-${variant.id}`} className="text-[10px] font-bold text-text-main cursor-pointer select-none leading-none flex items-center justify-between w-full">
+                        <span>
+                          {variant.product?.name} — {variant.name}
+                        </span>
+                        <span className="text-text-sub font-mono font-bold">${Number(variant.base_price).toFixed(2)}</span>
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </CrudForm>
         </CrudModal>
       )}
 

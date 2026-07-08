@@ -18,7 +18,12 @@ import { useAuthorization } from '@/shared/hooks/useAuthorization'
 import { User } from '@/shared/types'
 import { FiEdit2, FiKey, FiTrash2 } from 'react-icons/fi'
 
-const ROLES_LIST = ['Administrador', 'Pastelero', 'Vendedor']
+const ROLES_LIST = [
+  'Administrador',
+  'Repostero',
+  'Encargado de Operaciones y Suministros',
+  'Encargado Comercial'
+]
 
 const createUserSchema = z.object({
   full_name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.').max(100, 'El nombre no puede superar los 100 caracteres.'),
@@ -150,7 +155,7 @@ export default function Users() {
   })
 
   const resetPasswordMutation = useMutation({
-    mutationFn: ({ id, pass }: { id: number; pass: string }) => usersService.resetPassword(id, pass),
+    mutationFn: ({ id, pass }: { id: number; pass: string }) => usersService.resetPassword(id, { password: pass }),
     onSuccess: () => {
       toast.success('Contraseña reestablecida con éxito.')
       setIsResetOpen(false)
@@ -218,8 +223,8 @@ export default function Users() {
   // Columns definition
   const columns = [
     {
-      header: 'ID',
-      cell: (item: User) => <span className="font-bold text-text-sub/60">#{item.id}</span>
+      header: 'Número',
+      cell: (_item: User, index: number) => <span className="font-sans font-bold text-text-sub/60">{(page - 1) * perPage + index + 1}</span>
     },
     {
       header: 'Nombre Completo',

@@ -90,6 +90,10 @@ class SupabaseStorageService implements StorageServiceInterface
      */
     public function url(string $path): string
     {
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
         $this->validateConfig();
 
         return sprintf(

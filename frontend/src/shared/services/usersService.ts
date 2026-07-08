@@ -60,6 +60,13 @@ const usersService = {
    */
   async toggleActive(id: number): Promise<{ data: ApiResponse<User> }> {
     return api.patch(`/api/v1/users/${id}/toggle-active`)
+  },
+
+  /**
+   * Delete a user.
+   */
+  async delete(id: number): Promise<{ data: ApiResponse<null> }> {
+    return api.delete(`/api/v1/users/${id}`)
   }
 }
 

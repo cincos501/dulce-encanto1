@@ -133,4 +133,26 @@ class UserController extends Controller
             'message' => 'Contraseña restablecida con éxito.',
         ]);
     }
+
+    /**
+     * Toggle the active state of the specified user.
+     */
+    public function toggleActive(User $user): JsonResponse
+    {
+        try {
+            $updatedUser = $this->userService->toggleActive($user->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado del usuario actualizado con éxito.',
+                'data' => new \App\Http\Resources\UserResource($updatedUser),
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => [],
+            ], 422);
+        }
+    }
 }

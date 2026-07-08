@@ -9,7 +9,7 @@ export interface PromotionInput {
   start_date: string;
   end_date: string;
   is_active?: boolean;
-  product_ids?: number[];
+  product_variant_ids?: number[];
 }
 
 const promotionsService = {

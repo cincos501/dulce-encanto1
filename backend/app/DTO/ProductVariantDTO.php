@@ -11,7 +11,8 @@ class ProductVariantDTO
         public readonly string $name,
         public readonly string $sku = '',
         public readonly float $base_price = 0.00,
-        public readonly bool $is_active = true
+        public readonly bool $is_active = true,
+        public readonly array $extra_ids = []
     ) {}
 
     /**
@@ -26,7 +27,8 @@ class ProductVariantDTO
             name: (string) $data['name'],
             sku: (string) ($data['sku'] ?? ''),
             base_price: (float) $data['base_price'],
-            is_active: filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN)
+            is_active: filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            extra_ids: (array) ($data['extra_ids'] ?? [])
         );
     }
 

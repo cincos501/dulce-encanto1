@@ -25,6 +25,7 @@ class PromotionResource extends JsonResource
             'start_date' => $this->start_date?->toIso8601String(),
             'end_date' => $this->end_date?->toIso8601String(),
             'is_active' => (bool) $this->is_active,
+            'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

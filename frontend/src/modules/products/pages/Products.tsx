@@ -87,6 +87,7 @@ export default function Products() {
   // Variant Image state
   const [variantImages, setVariantImages] = useState<ProductImage[]>([])
   const [isImageUploading, setIsImageUploading] = useState<boolean>(false)
+  const [selectedExtraIds, setSelectedExtraIds] = useState<number[]>([])
 
   // React Hook Forms
   const productForm = useForm<ProductFormInputs>({
@@ -208,7 +209,8 @@ export default function Products() {
         product_id: editingProduct.id,
         name: data.name,
         base_price: data.base_price,
-        is_active: data.is_active
+        is_active: data.is_active,
+        extra_ids: selectedExtraIds
       }
       if (editingVariant) {
         return productVariantsService.update(editingVariant.id, payload)
@@ -288,6 +290,7 @@ export default function Products() {
   const openCreateVariantModal = () => {
     setEditingVariant(null)
     setVariantImages([])
+    setSelectedExtraIds([])
     variantForm.reset({
       name: '',
       base_price: 0,
@@ -298,6 +301,7 @@ export default function Products() {
 
   const openEditVariantModal = async (variant: ProductVariant) => {
     setEditingVariant(variant)
+    setSelectedExtraIds((variant.extras || []).map(e => e.id))
     variantForm.reset({
       name: variant.name,
       base_price: variant.base_price,
@@ -365,8 +369,8 @@ export default function Products() {
   // Table columns definition
   const columns = [
     {
-      header: 'ID',
-      cell: (item: Product) => <span className="font-bold text-text-sub/60">#{item.id}</span>
+      header: 'Número',
+      cell: (_item: Product, index: number) => <span className="font-sans font-bold text-text-sub/60">{(page - 1) * perPage + index + 1}</span>
     },
     {
       header: 'Nombre',
@@ -585,9 +589,9 @@ export default function Products() {
                             </td>
                           </tr>
                         ) : (
-                          variantsList.map((variant) => (
+                          variantsList.map((variant, variantIndex) => (
                             <tr key={variant.id} className="hover:bg-stone-50/50 transition-colors">
-                              <td className="px-4 py-3.5 font-sans font-bold text-text-sub/60">#{variant.id}</td>
+                              <td className="px-4 py-3.5 font-sans font-bold text-text-sub/60">{variantIndex + 1}</td>
                               <td className="px-4 py-3.5 font-sans font-bold text-stone-600">{variant.sku}</td>
                               <td className="px-4 py-3.5 font-bold text-primary">{variant.name}</td>
                               <td className="px-4 py-3.5 text-center font-sans font-bold text-primary">
@@ -747,6 +751,14 @@ export default function Products() {
                         <input
                           type="checkbox"
                           id={`extra-${extra.id}`}
+                          checked={selectedExtraIds.includes(extra.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedExtraIds(prev => [...prev, extra.id])
+                            } else {
+                              setSelectedExtraIds(prev => prev.filter(id => id !== extra.id))
+                            }
+                          }}
                           className="w-3.5 h-3.5 text-primary border-border rounded focus:ring-stone-250/20"
                         />
                         <label htmlFor={`extra-${extra.id}`} className="text-[10px] font-bold text-text-main cursor-pointer select-none leading-none">

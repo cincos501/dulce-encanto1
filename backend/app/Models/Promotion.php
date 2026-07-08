@@ -32,10 +32,10 @@ class Promotion extends Model
     }
 
     /**
-     * Get the products linked to the promotion.
+     * Get the product variants linked to the promotion.
      */
-    public function products(): BelongsToMany
+    public function variants(): BelongsToMany
     {
-        return $this->belongsToMany(Product::class, 'product_promotions');
+        return $this->belongsToMany(ProductVariant::class, 'promotion_product_variant', 'promotion_id', 'product_variant_id');
     }
 }

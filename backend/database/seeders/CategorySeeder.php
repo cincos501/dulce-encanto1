@@ -21,8 +21,18 @@ class CategorySeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'name' => 'Brazo Gitano',
-                'description' => 'Brazos de reina con rellenos cremosos y suaves.',
+                'name' => 'Cupcakes',
+                'description' => 'Cupcakes creativos de diferentes sabores y coberturas.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Galletas',
+                'description' => 'Galletas crujientes y horneadas con chispas de chocolate o avena.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Postres',
+                'description' => 'Cheesecakes, pies de limón y otros postres deliciosos en porciones.',
                 'is_active' => true,
             ],
         ];

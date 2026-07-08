@@ -70,4 +70,12 @@ class ProductVariant extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
+
+    /**
+     * Get the promotions for the variant.
+     */
+    public function promotions(): BelongsToMany
+    {
+        return $this->belongsToMany(Promotion::class, 'promotion_product_variant', 'product_variant_id', 'promotion_id');
+    }
 }

@@ -15,11 +15,12 @@ class ExtraSeeder extends Seeder
     public function run(): void
     {
         $extras = [
-            ['name' => 'Nuez', 'price' => 1.50, 'description' => 'Nueces picadas crujientes.'],
-            ['name' => 'Chantilly', 'price' => 1.00, 'description' => 'Porción extra de crema chantilly.'],
-            ['name' => 'Frutilla', 'price' => 1.25, 'description' => 'Frutillas frescas fileteadas.'],
-            ['name' => 'Chocolate extra', 'price' => 1.50, 'description' => 'Fudge de chocolate adicional.'],
-            ['name' => 'Mensaje personalizado', 'price' => 2.00, 'description' => 'Dedicatoria escrita sobre placa de chocolate.'],
+            ['name' => 'Extra crema', 'price' => 1.00, 'description' => 'Porción extra de crema chantilly.'],
+            ['name' => 'Nutella', 'price' => 2.00, 'description' => 'Adicional de Nutella cremosa.'],
+            ['name' => 'Maní', 'price' => 0.80, 'description' => 'Maní tostado y picado.'],
+            ['name' => 'Nuez', 'price' => 1.20, 'description' => 'Nueces frescas troceadas.'],
+            ['name' => 'Chispas de chocolate', 'price' => 0.70, 'description' => 'Lluvia de chispas de chocolate de leche.'],
+            ['name' => 'Velas', 'price' => 1.50, 'description' => 'Juego de velas de cumpleaños para decoración.'],
         ];
 
         foreach ($extras as $extra) {

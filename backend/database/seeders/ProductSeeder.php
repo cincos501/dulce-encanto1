@@ -16,7 +16,9 @@ class ProductSeeder extends Seeder
     public function run(): void
     {
         $tortas = Category::where('name', 'Tortas')->first();
-        $brazos = Category::where('name', 'Brazo Gitano')->first();
+        $cupcakes = Category::where('name', 'Cupcakes')->first();
+        $galletas = Category::where('name', 'Galletas')->first();
+        $postres = Category::where('name', 'Postres')->first();
 
         if ($tortas) {
             Product::updateOrCreate(
@@ -38,21 +40,61 @@ class ProductSeeder extends Seeder
             );
         }
 
-        if ($brazos) {
+        if ($cupcakes) {
             Product::updateOrCreate(
-                ['name' => 'Brazo Gitano de Chocolate'],
+                ['name' => 'Cupcake de Vainilla'],
                 [
-                    'category_id' => $brazos->id,
-                    'description' => 'Bizcochuelo enrollado relleno de ganache de chocolate belga.',
+                    'category_id' => $cupcakes->id,
+                    'description' => 'Delicado cupcake de vainilla con frosting de crema de mantequilla.',
                     'is_active' => true,
                 ]
             );
 
             Product::updateOrCreate(
-                ['name' => 'Brazo Gitano de Frutilla'],
+                ['name' => 'Cupcake de Red Velvet'],
                 [
-                    'category_id' => $brazos->id,
-                    'description' => 'Bizcochuelo enrollado relleno de crema y frutillas frescas.',
+                    'category_id' => $cupcakes->id,
+                    'description' => 'Cupcake clásico aterciopelado rojo con frosting de queso crema.',
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        if ($galletas) {
+            Product::updateOrCreate(
+                ['name' => 'Galletas de Chispas'],
+                [
+                    'category_id' => $galletas->id,
+                    'description' => 'Galletas suaves y masticables cargadas con abundantes chispas de chocolate.',
+                    'is_active' => true,
+                ]
+            );
+
+            Product::updateOrCreate(
+                ['name' => 'Galletas de Avena y Miel'],
+                [
+                    'category_id' => $galletas->id,
+                    'description' => 'Saludables y deliciosas galletas de avena endulzadas con miel natural.',
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        if ($postres) {
+            Product::updateOrCreate(
+                ['name' => 'Cheesecake de Frutilla'],
+                [
+                    'category_id' => $postres->id,
+                    'description' => 'Crema de queso suave sobre base crujiente de galleta y cobertura de frutillas.',
+                    'is_active' => true,
+                ]
+            );
+
+            Product::updateOrCreate(
+                ['name' => 'Pie de Limón'],
+                [
+                    'category_id' => $postres->id,
+                    'description' => 'Base crujiente rellena de crema de limón ácida y decorada con merengue dorado.',
                     'is_active' => true,
                 ]
             );
