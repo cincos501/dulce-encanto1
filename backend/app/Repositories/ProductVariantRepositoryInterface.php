@@ -15,19 +15,19 @@ interface ProductVariantRepositoryInterface
      *
      * @return Collection<int, ProductVariant>
      */
-    public function all(): Collection;
+    public function all(bool $onlyActive = false): Collection;
 
     /**
      * Get variants by product ID.
      *
      * @return Collection<int, ProductVariant>
      */
-    public function getByProductId(int $productId): Collection;
+    public function getByProductId(int $productId, bool $onlyActive = false): Collection;
 
     /**
      * Get paginated and filtered variants.
      */
-    public function paginate(int $perPage = 10, ?string $search = null, ?int $productId = null): LengthAwarePaginator;
+    public function paginate(int $perPage = 10, ?string $search = null, ?int $productId = null, bool $onlyActive = false): LengthAwarePaginator;
 
     /**
      * Find a variant by ID.

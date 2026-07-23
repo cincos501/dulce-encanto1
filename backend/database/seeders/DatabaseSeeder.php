@@ -26,6 +26,11 @@ class DatabaseSeeder extends Seeder
             ProductVariantSeeder::class,
             ExtraSeeder::class,
             PromotionSeeder::class,
+            SupplierSeeder::class,
+            SupplySeeder::class,
+            RecipeSeeder::class,
+            CustomerSeeder::class,
+            OrderSeeder::class,
         ]);
 
         // Programmatic validation step

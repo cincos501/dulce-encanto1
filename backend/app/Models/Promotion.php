@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['name', 'description', 'discount_type', 'discount', 'start_date', 'end_date', 'is_active'])]
+#[Fillable(['name', 'description', 'discount_type', 'discount', 'start_date', 'end_date', 'is_active', 'image_url'])]
 class Promotion extends Model
 {
     use HasFactory, SoftDeletes;

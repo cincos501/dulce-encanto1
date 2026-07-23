@@ -9,7 +9,6 @@ class ExtraDTO
     public function __construct(
         public readonly string $name,
         public readonly ?string $description = null,
-        public readonly float $price = 0.00,
         public readonly bool $is_active = true
     ) {}
 
@@ -23,7 +22,6 @@ class ExtraDTO
         return new self(
             name: (string) $data['name'],
             description: isset($data['description']) ? (string) $data['description'] : null,
-            price: isset($data['price']) ? (float) $data['price'] : 0.00,
             is_active: filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN)
         );
     }
@@ -38,7 +36,6 @@ class ExtraDTO
         return [
             'name' => $this->name,
             'description' => $this->description,
-            'price' => $this->price,
             'is_active' => $this->is_active,
         ];
     }

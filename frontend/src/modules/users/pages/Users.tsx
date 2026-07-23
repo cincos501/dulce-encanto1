@@ -1,22 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { toast } from '@/design-system'
 import { 
   CrudPage, 
   CrudTable, 
   CrudModal, 
   CrudForm, 
-  CrudDeleteDialog, 
   CrudStatusBadge 
 } from '@/shared/components/crud'
-import { Badge, Button, Input, Label } from '@/design-system'
+import { Badge, Button, Input, Label, Tooltip } from '@/design-system'
 import usersService, { UserInput } from '@/shared/services/usersService'
 import { useAuthorization } from '@/shared/hooks/useAuthorization'
 import { User } from '@/shared/types'
-import { FiEdit2, FiKey, FiTrash2 } from 'react-icons/fi'
+import { FiEdit2, FiKey } from 'react-icons/fi'
+import { cn } from '@/shared/utils/cn'
+import { handleApiError } from '@/shared/utils/formErrors'
 
 const ROLES_LIST = [
   'Administrador',
@@ -64,8 +64,6 @@ export default function Users() {
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false)
-  const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [isResetOpen, setIsResetOpen] = useState<boolean>(false)
   const [userForReset, setUserForReset] = useState<User | null>(null)
 
@@ -100,6 +98,40 @@ export default function Users() {
     }
   })
 
+  const createUserEmail = createForm.watch('email')
+  const editUserEmail = editForm.watch('email')
+
+  // Real-time email uniqueness validation
+  useEffect(() => {
+    const emailToCheck = editingUser ? editUserEmail : createUserEmail
+    const activeForm = editingUser ? editForm : createForm
+
+    if (!emailToCheck || emailToCheck.trim().length < 5 || !emailToCheck.includes('@')) {
+      activeForm.clearErrors('email')
+      return
+    }
+
+    const checkUniqueness = setTimeout(async () => {
+      try {
+        const response = await usersService.paginate(1, emailToCheck.trim(), 10)
+        const users = response.data?.data || []
+        const isDuplicate = users.some(u => 
+          u.email.toLowerCase() === emailToCheck.trim().toLowerCase() && 
+          u.id !== editingUser?.id
+        )
+        if (isDuplicate) {
+          activeForm.setError('email', { type: 'manual', message: 'Ya existe un usuario con este correo electrónico.' })
+        } else {
+          activeForm.clearErrors('email')
+        }
+      } catch {
+        // Ignore API errors
+      }
+    }, 400)
+
+    return () => clearTimeout(checkUniqueness)
+  }, [createUserEmail, editUserEmail, editingUser, createForm, editForm])
+
   // Queries
   const { data: queryData, isLoading } = useQuery({
     queryKey: ['users-list', page, search, roleFilter, statusFilter],
@@ -131,26 +163,12 @@ export default function Users() {
       }
     },
     onSuccess: (response) => {
-      toast.success(response.data.message || 'Usuario guardado con éxito.')
       queryClient.invalidateQueries({ queryKey: ['users-list'] })
       closeFormModal()
     },
     onError: (err: any) => {
-      const message = err.response?.data?.message || 'Error al guardar el usuario.'
-      toast.error(message)
-    }
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => usersService.delete(id),
-    onSuccess: () => {
-      toast.success('Usuario eliminado exitosamente.')
-      queryClient.invalidateQueries({ queryKey: ['users-list'] })
-      setIsDeleteOpen(false)
-    },
-    onError: (err: any) => {
-      const message = err.response?.data?.message || 'No se puede eliminar el usuario.'
-      toast.error(message)
+      const activeForm = editingUser ? editForm : createForm
+      handleApiError(err, activeForm.setError, 'Error al guardar el usuario.')
     }
   })
 
@@ -163,18 +181,18 @@ export default function Users() {
       resetForm.reset()
     },
     onError: (err: any) => {
-      const message = err.response?.data?.message || 'Error al actualizar contraseña.'
-      toast.error(message)
+      handleApiError(err, resetForm.setError, 'Error al actualizar contraseña.')
     }
   })
 
   const toggleActiveMutation = useMutation({
     mutationFn: (id: number) => usersService.toggleActive(id),
     onSuccess: () => {
-      toast.success('Estado del usuario modificado.')
       queryClient.invalidateQueries({ queryKey: ['users-list'] })
     },
-    onError: () => toast.error('Error al cambiar estado.')
+    onError: (err: any) => {
+      toast.error('Error al cambiar estado.')
+    }
   })
 
   // Handlers
@@ -259,45 +277,47 @@ export default function Users() {
       header: 'Acciones',
       headerClassName: 'text-right',
       cellClassName: 'text-right space-x-2',
-      cell: (item: User) => (
-        <>
+      cell: (item: User) => {
+        const isInactive = !item.is_active
+        const editButton = (
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => openEditModal(item)}
-            className="inline-flex items-center gap-1.5"
+            onClick={isInactive ? undefined : () => openEditModal(item)}
+            className={cn(
+              "inline-flex items-center gap-1.5",
+              isInactive && "bg-stone-200 hover:bg-stone-200 text-stone-400 cursor-not-allowed opacity-60 active:scale-100 dark:bg-stone-800 dark:text-stone-600"
+            )}
           >
             <FiEdit2 className="text-xs" />
             <span>Editar</span>
           </Button>
-          <Button
-            variant="info"
-            size="sm"
-            onClick={() => {
-              setUserForReset(item);
-              setIsResetOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5"
-          >
-            <FiKey className="text-xs" />
-            <span>Clave</span>
-          </Button>
-          {hasPermission('users.manage') && currentUser?.id !== item.id && (
+        )
+
+        return (
+          <div className="inline-flex gap-2">
+            {isInactive ? (
+              <Tooltip content="Debe activar nuevamente el registro para editarlo.">
+                {editButton}
+              </Tooltip>
+            ) : (
+              editButton
+            )}
             <Button
-              variant="ghost"
+              variant="info"
               size="sm"
-              className="text-red-650 hover:bg-red-50 inline-flex items-center gap-1.5"
               onClick={() => {
-                setUserToDelete(item);
-                setIsDeleteOpen(true);
+                setUserForReset(item)
+                setIsResetOpen(true)
               }}
+              className="inline-flex items-center gap-1.5"
             >
-              <FiTrash2 className="text-xs" />
-              <span>Eliminar</span>
+              <FiKey className="text-xs" />
+              <span>Clave</span>
             </Button>
-          )}
-        </>
-      )
+          </div>
+        )
+      }
     }
   ]
 
@@ -383,7 +403,7 @@ export default function Users() {
   return (
     <CrudPage
       title="Personal de Pastelería"
-      subtitle="Administra las cuentas de accesos, roles and perfiles del personal del local."
+      subtitle="Administra las cuentas de accesos, roles y perfiles del personal del local."
       createLabel="Nuevo Integrante"
       createPermission="users.manage"
       onCreateClick={openCreateModal}
@@ -496,16 +516,6 @@ export default function Users() {
           </form>
         </CrudModal>
       )}
-
-      {/* DELETE CONFIRM DIALOG */}
-      <CrudDeleteDialog
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        onConfirm={() => userToDelete && deleteMutation.mutate(userToDelete.id)}
-        isLoading={deleteMutation.isPending}
-        title="¿Eliminar Integrante?"
-        message={`Estás seguro de que deseas eliminar permanentemente la cuenta de "${userToDelete?.full_name}"? Esta acción no se puede deshacer.`}
-      />
     </CrudPage>
   )
 }

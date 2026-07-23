@@ -27,9 +27,10 @@ class ProductController extends Controller
         $search = $request->query('search');
         $perPage = (int) $request->query('per_page', 10);
         $paginate = filter_var($request->query('paginate', true), FILTER_VALIDATE_BOOLEAN);
+        $onlyActive = filter_var($request->query('only_active', false), FILTER_VALIDATE_BOOLEAN);
 
         if (! $paginate) {
-            $products = $this->productService->all();
+            $products = $this->productService->all($onlyActive);
 
             return response()->json([
                 'success' => true,
@@ -38,7 +39,7 @@ class ProductController extends Controller
             ]);
         }
 
-        $products = $this->productService->paginate($perPage, $search);
+        $products = $this->productService->paginate($perPage, $search, $onlyActive);
 
         // Explicitly load category relation on paginated collection
         $products->getCollection()->load('category');

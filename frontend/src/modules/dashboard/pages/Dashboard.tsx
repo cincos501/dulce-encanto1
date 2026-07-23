@@ -1,12 +1,12 @@
 import React from 'react'
 import { useAuth } from '@/app/providers/AuthContext'
+import { useQuery } from '@tanstack/react-query'
 import { 
   StatCard, 
   Card, 
   CardHeader, 
   CardContent, 
   Badge, 
-  Divider, 
   Typography 
 } from '@/design-system'
 import { 
@@ -18,34 +18,53 @@ import {
   FiTrendingUp, 
   FiAward, 
   FiThumbsUp, 
-  FiKey, 
-  FiUser, 
-  FiCheck 
+  FiUser 
 } from 'react-icons/fi'
+import productsService from '@/shared/services/productsService'
+import usersService from '@/shared/services/usersService'
 
 export default function Dashboard() {
   const { user } = useAuth()
+
+  // Queries to load recent products & users
+  const { data: recentProducts = [] } = useQuery({
+    queryKey: ['recent-products-dashboard'],
+    queryFn: async () => {
+      const response = await productsService.paginate(1, '', 5)
+      return response.data?.data || []
+    },
+    enabled: !!user
+  })
+
+  const { data: recentUsers = [] } = useQuery({
+    queryKey: ['recent-users-dashboard'],
+    queryFn: async () => {
+      const response = await usersService.paginate(1, '', 5)
+      return response.data?.data || []
+    },
+    enabled: !!user
+  })
 
   if (!user) return null
 
   // Simulated metrics
   const stats = [
-    { title: 'Ventas del Mes', value: '$1,480.00', change: '+12.5% vs mes anterior', changeType: 'increase' as const, icon: <FiDollarSign /> },
+    { title: 'Ventas del Mes', value: 'Bs. 1,480.00', change: '+12.5% vs mes anterior', changeType: 'increase' as const, icon: <FiDollarSign /> },
     { title: 'Pedidos Activos', value: '16', change: '+4 nuevos hoy', changeType: 'increase' as const, icon: <FiShoppingBag /> },
     { title: 'Productos en Menú', value: '12', change: 'Estructura unificada', changeType: 'neutral' as const, icon: <FiPackage /> },
     { title: 'Ingredientes Adicionales', value: '8 extras', change: 'Disponibles', changeType: 'neutral' as const, icon: <FiSliders /> }
   ]
 
   const recentOrders = [
-    { id: '#1004', customer: 'Andrea Rojas', items: 'Torta Tres Leches (Grande)', total: '$24.50', status: 'Entregado', time: 'Hace 20 min' },
-    { id: '#1003', customer: 'Carlos Mendoza', items: 'Cheesecake de Oreo (Personal)', total: '$6.00', status: 'Preparando', time: 'Hace 45 min' },
-    { id: '#1002', customer: 'Laura Silva', items: 'Budín de Limón + Velitas', total: '$14.00', status: 'Pendiente', time: 'Hace 1 hora' }
+    { id: '#1004', customer: 'Andrea Rojas', items: 'Torta Tres Leches (Grande)', total: 'Bs. 24.50', status: 'Entregado', time: 'Hace 20 min' },
+    { id: '#1003', customer: 'Carlos Mendoza', items: 'Cheesecake de Oreo (Personal)', total: 'Bs. 6.00', status: 'Preparando', time: 'Hace 45 min' },
+    { id: '#1002', customer: 'Laura Silva', items: 'Budín de Limón + Velitas', total: 'Bs. 14.00', status: 'Pendiente', time: 'Hace 1 hora' }
   ]
 
   const topProducts = [
-    { name: 'Torta Selva Negra', orders: '32 pedidos', revenue: '$640.00', popularity: 'Muy alta', icon: <FiTrendingUp className="text-amber-500" /> },
-    { name: 'Torta Tres Leches', orders: '28 pedidos', revenue: '$545.00', popularity: 'Alta', icon: <FiAward className="text-amber-500" /> },
-    { name: 'Brazo Gitano Chocolate', orders: '15 pedidos', revenue: '$225.00', popularity: 'Media', icon: <FiThumbsUp className="text-amber-500" /> }
+    { name: 'Torta Selva Negra', orders: '32 pedidos', revenue: 'Bs. 640.00', popularity: 'Muy alta', icon: <FiTrendingUp className="text-amber-500" /> },
+    { name: 'Torta Tres Leches', orders: '28 pedidos', revenue: 'Bs. 545.00', popularity: 'Alta', icon: <FiAward className="text-amber-500" /> },
+    { name: 'Brazo Gitano Chocolate', orders: '15 pedidos', revenue: 'Bs. 225.00', popularity: 'Media', icon: <FiThumbsUp className="text-amber-500" /> }
   ]
 
   return (
@@ -163,36 +182,71 @@ export default function Dashboard() {
 
       </div>
 
-      {/* ACCOUNT DETAILS & SECURITY (Spatie) */}
+      {/* RECENT RECORDS FEEDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
-        {/* PERMISSIONS CARD */}
-        <Card className="md:col-span-2">
+        {/* RECENT PRODUCTS */}
+        <Card className="md:col-span-1">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <FiKey className="text-lg text-primary" />
-              <Typography variant="h3">Seguridad y Permisos Activos</Typography>
+              <FiPackage className="text-lg text-primary animate-bounce" />
+              <Typography variant="h3">Últimos Productos</Typography>
             </div>
-            <p className="text-text-sub/70 text-[10px] mt-0.5 font-bold uppercase tracking-wider">Detalle de capacidades autorizadas por Spatie Permission en tu cuenta.</p>
+            <p className="text-text-sub/70 text-[10px] mt-0.5 font-bold uppercase tracking-wider">Productos añadidos recientemente al catálogo.</p>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {user.permissions && user.permissions.length > 0 ? (
-                user.permissions.map((perm) => (
-                  <Badge key={perm} variant="success" className="py-1.5 px-3.5 rounded-lg border-emerald-200 font-bold flex items-center gap-1.5">
-                    <FiCheck />
-                    <span>{perm}</span>
-                  </Badge>
-                ))
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/40 text-xs">
+              {recentProducts.length === 0 ? (
+                <p className="p-4 text-center text-text-sub/40 italic">No hay productos recientes.</p>
               ) : (
-                <span className="text-text-sub text-xs italic">Esta cuenta no posee permisos específicos asignados actualmente.</span>
+                recentProducts.map((p: any) => (
+                  <div key={p.id} className="px-5 py-3 hover:bg-stone-50/50 transition-colors flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-primary">{p.name}</span>
+                      <span className="text-[9px] text-text-sub font-semibold">{p.category?.name || 'Sin categoría'}</span>
+                    </div>
+                    <Badge variant={p.is_active ? 'success' : 'neutral'}>
+                      {p.is_active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* RECENT USERS */}
+        <Card className="md:col-span-1">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FiUser className="text-lg text-primary" />
+              <Typography variant="h3">Personal Reciente</Typography>
+            </div>
+            <p className="text-text-sub/70 text-[10px] mt-0.5 font-bold uppercase tracking-wider">Últimos integrantes creados en el local.</p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/40 text-xs">
+              {recentUsers.length === 0 ? (
+                <p className="p-4 text-center text-text-sub/40 italic">No hay integrantes recientes.</p>
+              ) : (
+                recentUsers.map((u: any) => (
+                  <div key={u.id} className="px-5 py-3 hover:bg-stone-50/50 transition-colors flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-primary">{u.full_name}</span>
+                      <span className="text-[9px] text-text-sub font-semibold">{u.roles?.[0] || 'Personal'}</span>
+                    </div>
+                    <Badge variant={u.is_active ? 'success' : 'neutral'}>
+                      {u.is_active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
+                ))
               )}
             </div>
           </CardContent>
         </Card>
 
         {/* ACCOUNT INFO CARD */}
-        <Card>
+        <Card className="md:col-span-1">
           <CardHeader>
             <div className="flex items-center gap-2">
               <FiUser className="text-lg text-primary" />

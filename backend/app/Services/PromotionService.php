@@ -21,9 +21,9 @@ class PromotionService
     /**
      * Get paginated and filtered promotions.
      */
-    public function paginate(int $perPage = 10, ?string $search = null): LengthAwarePaginator
+    public function paginate(int $perPage = 10, ?string $search = null, bool $onlyActive = false): LengthAwarePaginator
     {
-        return $this->promotionRepository->paginate($perPage, $search);
+        return $this->promotionRepository->paginate($perPage, $search, $onlyActive);
     }
 
     /**
@@ -31,9 +31,9 @@ class PromotionService
      *
      * @return Collection<int, Promotion>
      */
-    public function all(): Collection
+    public function all(bool $onlyActive = false): Collection
     {
-        return $this->promotionRepository->all();
+        return $this->promotionRepository->all($onlyActive);
     }
 
     /**

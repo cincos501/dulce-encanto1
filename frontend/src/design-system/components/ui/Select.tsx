@@ -1,5 +1,6 @@
 import React from 'react'
 import { cn } from '@/shared/utils/cn'
+import { HelperText } from './HelperText'
 
 export interface SelectOption {
   value: string | number;
@@ -35,9 +36,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
         {error && (
-          <span className="text-[10px] text-red-500 block font-semibold pl-1 animate-fade-in">
+          <HelperText error className="text-[10px] pl-1 font-semibold animate-fade-in">
             {error}
-          </span>
+          </HelperText>
         )}
       </div>
     )

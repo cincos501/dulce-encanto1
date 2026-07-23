@@ -37,7 +37,8 @@ export interface ProductVariant {
   product_id: number;
   name: string;
   sku: string;
-  base_price: number;
+  price: number;
+  serves_people?: number | null;
   is_active: boolean;
   product?: Product;
   images?: ProductImage[];
@@ -72,7 +73,7 @@ export interface Promotion {
 export interface Extra {
   id: number;
   name: string;
-  price: number;
+  price?: number;
   description?: string | null;
   is_active: boolean;
   created_at?: string;
@@ -105,6 +106,10 @@ export interface CatalogItem {
   description: string | null;
   category: string;
   min_price: number;
+  promo_price: number | null;
+  has_promotion: boolean;
+  promo_discount_text: string | null;
+  has_multiple_variants: boolean;
   image: string | null;
 }
 
@@ -113,6 +118,9 @@ export interface CatalogVariant {
   name: string;
   sku: string;
   price: number;
+  promo_price: number | null;
+  serves_people?: number | null;
+  extras?: CatalogExtra[];
 }
 
 export interface CatalogExtra {
@@ -139,4 +147,55 @@ export interface CatalogDetail {
   variants: CatalogVariant[];
   extras: CatalogExtra[];
   promotions: CatalogPromotion[];
+}
+
+export interface Supplier {
+  id: number;
+  business_name: string;
+  phone: string;
+  email: string | null;
+  address: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Supply {
+  id: number;
+  name: string;
+  unit: string;
+  stock: number;
+  minimum_stock: number;
+  average_cost: number;
+  is_active: boolean;
+  suppliers?: {
+    id: number;
+    business_name: string;
+    purchase_price: number;
+  }[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RecipeItem {
+  id?: number;
+  supply_id: number;
+  supply_name?: string;
+  quantity: number;
+  unit: string;
+  observation?: string | null;
+}
+
+export interface Recipe {
+  id: number; // variant id
+  name: string; // variant name
+  sku: string;
+  is_active: boolean;
+  product: {
+    id: number;
+    name: string;
+  };
+  items: RecipeItem[];
+  created_at?: string;
+  updated_at?: string;
 }

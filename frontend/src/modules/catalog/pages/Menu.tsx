@@ -2,28 +2,50 @@ import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import catalogService from '@/shared/services/catalogService'
 import { CatalogItem, CatalogPromotion } from '@/shared/types'
-import { 
-  Button, 
-  Card, 
-  CardContent, 
-  Badge, 
-  Typography, 
-  PriceTag, 
-  Modal, 
-  EmptyState, 
-  Loading 
+import {
+  Button,
+  Card,
+  CardContent,
+  Badge,
+  Typography,
+  PriceTag,
+  Modal,
+  EmptyState,
+  Loading
 } from '@/design-system'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { FiSearch, FiInfo, FiCheck, FiTag, FiShoppingBag } from 'react-icons/fi'
+import CheckoutModal from '../components/CheckoutModal'
+import { useCart } from '@/app/providers/CartContext'
+import { FiSearch, FiInfo, FiCheck, FiTag, FiShoppingBag, FiPlus, FiMinus, FiAlertTriangle, FiImage, FiUsers } from 'react-icons/fi'
+import productPlaceholder from '@/assets/placeholders/product-placeholder.webp'
+import { toast } from 'sonner'
 
 export default function Menu() {
+  const { cartCount, addToCart } = useCart()
   const [activeCategory, setActiveCategory] = useState<string>('todos')
   const [searchQuery, setSearchQuery] = useState<string>('')
-  const [cartCount, setCartCount] = useState<number>(0)
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null)
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null)
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0)
+
+  // Selection & Checkout modal states
+  const [selectedExtraIds, setSelectedExtraIds] = useState<number[]>([])
+  const [itemQuantity, setItemQuantity] = useState<number>(1)
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false)
+
+  // Reset detail selections when modal product changes
+  useEffect(() => {
+    if (selectedProductId) {
+      setSelectedExtraIds([])
+      setItemQuantity(1)
+    }
+  }, [selectedProductId])
+
+  // Reset selected extras when active variant changes
+  useEffect(() => {
+    setSelectedExtraIds([])
+  }, [selectedVariantId])
 
   // React Query: Get public catalog
   const { data: catalogData, isLoading, isError } = useQuery({
@@ -70,29 +92,17 @@ export default function Menu() {
   // Filter products by category AND search query
   const filteredProducts = products.filter(product => {
     const matchesCategory = activeCategory === 'todos' || product.category.toLowerCase() === activeCategory
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
     return matchesCategory && matchesSearch
   })
-
-  // Helper: Calculate promotional price
-  const getPromoPrice = (originalPrice: number, promotions: CatalogPromotion[] | undefined) => {
-    if (!promotions || promotions.length === 0) return null
-    const promo = promotions[0]
-    if (promo.discount_type === 'percentage') {
-      return originalPrice - (originalPrice * promo.discount / 100)
-    } else if (promo.discount_type === 'fixed') {
-      return Math.max(0, originalPrice - promo.discount)
-    }
-    return null
-  }
 
   // Get active variant details
   const activeVariant = detailData?.variants?.find(v => v.id === selectedVariantId) || detailData?.variants?.[0]
 
   return (
     <div className="min-h-screen bg-background text-text-main font-sans flex flex-col justify-between">
-      <Navbar cartCount={cartCount} />
+      <Navbar cartCount={cartCount} onCartClick={() => setIsCheckoutOpen(true)} />
 
       <main className="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full space-y-12">
         {/* Title */}
@@ -116,8 +126,8 @@ export default function Menu() {
               className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-background border border-border focus:border-primary focus:ring-1 focus:ring-stone-200 outline-none text-xs text-text-main transition-all duration-200"
             />
             {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')} 
+              <button
+                onClick={() => setSearchQuery('')}
                 className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[10px] text-text-sub hover:text-primary font-bold"
               >
                 Limpiar
@@ -131,11 +141,10 @@ export default function Menu() {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-4 py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all duration-200 active:scale-95 ${
-                  activeCategory === cat.id
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'bg-surface text-text-sub hover:bg-stone-100 dark:hover:bg-stone-800 border border-border/80'
-                }`}
+                className={`px-4 py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all duration-200 active:scale-95 ${activeCategory === cat.id
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'bg-surface text-text-sub hover:bg-stone-100 dark:hover:bg-stone-800 border border-border/80'
+                  }`}
               >
                 {cat.name}
               </button>
@@ -148,7 +157,7 @@ export default function Menu() {
           <Loading label="Cargando menú delicioso..." />
         ) : isError ? (
           <div className="py-16 text-center space-y-2">
-            <span className="text-3xl">⚠️</span>
+            <FiAlertTriangle className="text-3xl text-amber-500 mx-auto" />
             <p className="text-primary font-bold text-lg">Ha ocurrido un problema</p>
             <p className="text-text-sub text-xs">No se pudo cargar el catálogo de productos.</p>
           </div>
@@ -160,34 +169,50 @@ export default function Menu() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProducts.map((product) => (
-              <Card 
+              <Card
                 key={product.id}
                 className="overflow-hidden border border-border shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col h-full bg-surface"
               >
                 {/* Image wrapper */}
                 <div className="h-56 bg-stone-50 relative flex items-center justify-center overflow-hidden">
                   {product.image ? (
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
+                    <img
+                      src={product.image}
+                      alt={product.name}
                       className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Dulce+Encanto'
+                        (e.target as HTMLImageElement).src = productPlaceholder
                       }}
                     />
                   ) : (
-                    <div className="text-6xl select-none">🧁</div>
+                    <img
+                      src={productPlaceholder}
+                      alt={product.name}
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                    />
+                  )}
+                  {product.has_promotion && product.promo_discount_text && (
+                    <div className="absolute top-3 left-3 bg-red-650 text-white font-heading font-black text-[9px] uppercase tracking-widest py-1 px-2.5 rounded shadow-md z-10 select-none animate-pulse">
+                      Oferta {product.promo_discount_text}
+                    </div>
                   )}
                 </div>
-                
+
                 {/* Card Content */}
                 <CardContent className="p-6 flex-grow flex flex-col justify-between space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Badge variant="info">{product.category}</Badge>
-                      <span className="text-[10px] text-text-sub font-bold uppercase tracking-wider">
-                        desde <strong className="text-primary text-sm">${Number(product.min_price).toFixed(2)}</strong>
-                      </span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] text-text-sub font-bold uppercase tracking-wider select-none">
+                          {product.has_multiple_variants ? 'desde' : 'precio'}
+                        </span>
+                        <PriceTag
+                          price={product.min_price}
+                          promoPrice={product.promo_price}
+                          size="sm"
+                        />
+                      </div>
                     </div>
                     <h3 className="font-heading font-black text-lg text-primary group-hover:text-amber-800 transition-colors duration-200">
                       {product.name}
@@ -196,8 +221,14 @@ export default function Menu() {
                       {product.description || 'Sin descripción disponible.'}
                     </p>
                   </div>
-                  
-                  <Button 
+
+                  {product.has_multiple_variants && (
+                    <div className="text-[9px] text-text-sub font-bold uppercase tracking-wider bg-stone-50 dark:bg-stone-900 border border-border py-1 px-2.5 rounded flex items-center justify-center gap-1 select-none">
+                      <span>Más opciones disponibles</span>
+                    </div>
+                  )}
+
+                  <Button
                     onClick={() => {
                       setSelectedProductId(product.id)
                       setSelectedVariantId(null)
@@ -222,7 +253,7 @@ export default function Menu() {
           maxWidthClassName="max-w-4xl"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            
+
             {/* LEFT: PHOTO GALLERY */}
             <div className="bg-stone-50 p-4 rounded-lg flex flex-col gap-4 border border-border">
               {isLoadingDetail ? (
@@ -234,18 +265,18 @@ export default function Menu() {
                 </div>
               ) : !detailData?.gallery || detailData.gallery.length === 0 ? (
                 <div className="py-16 text-center text-text-sub/50">
-                  <span className="text-4xl block">🖼️</span>
+                  <FiImage className="text-4xl text-text-sub/40 mx-auto" />
                   <span className="text-[10px] font-bold uppercase tracking-wider mt-1 block">Sin imágenes cargadas</span>
                 </div>
               ) : (
                 <>
                   <div className="w-full aspect-square rounded-lg overflow-hidden bg-surface border border-border relative flex items-center justify-center">
-                    <img 
-                      src={detailData.gallery[activeImageIndex]?.image_url} 
+                    <img
+                      src={detailData.gallery[activeImageIndex]?.image_url}
                       alt="Product Detail"
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/600x600?text=Dulce+Encanto'
+                        (e.target as HTMLImageElement).src = productPlaceholder
                       }}
                     />
                   </div>
@@ -255,14 +286,13 @@ export default function Menu() {
                         <button
                           key={img.id}
                           onClick={() => setActiveImageIndex(index)}
-                          className={`w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
-                            activeImageIndex === index 
-                              ? 'border-primary scale-95 shadow-sm' 
-                              : 'border-border hover:border-stone-400'
-                          }`}
+                          className={`w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${activeImageIndex === index
+                            ? 'border-primary scale-95 shadow-sm'
+                            : 'border-border hover:border-stone-400'
+                            }`}
                         >
-                          <img 
-                            src={img.image_url} 
+                          <img
+                            src={img.image_url}
                             className="w-full h-full object-cover"
                             alt="thumb"
                           />
@@ -316,55 +346,138 @@ export default function Menu() {
                             key={v.id}
                             type="button"
                             onClick={() => setSelectedVariantId(v.id)}
-                            className={`p-3 rounded-lg border text-left transition-all ${
-                              isSel 
-                                ? 'border-primary bg-secondary/15 ring-1 ring-primary'
-                                : 'border-border hover:border-primary bg-surface'
-                            }`}
+                            className={`p-3 rounded-lg border text-left transition-all flex flex-col justify-between h-full ${isSel
+                              ? 'border-primary bg-secondary/15 ring-1 ring-primary'
+                              : 'border-border hover:border-primary bg-surface'
+                              }`}
                           >
-                            <div className="font-bold text-xs text-primary">{v.name}</div>
+                            <div>
+                              <div className="font-bold text-xs text-primary">{v.name}</div>
+                              {v.serves_people !== null && v.serves_people !== undefined && (
+                                <div className="text-[10px] text-text-sub font-semibold mt-0.5 flex items-center gap-1 select-none">
+                                  <FiUsers className="text-xs text-text-sub/70" />
+                                  <span>Ideal para {v.serves_people} {v.serves_people === 1 ? 'persona' : 'personas'}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="mt-2 text-right">
+                              {v.promo_price !== null && v.promo_price !== undefined ? (
+                                <div className="flex items-baseline justify-end gap-1.5">
+                                  <span className="text-[10px] text-text-sub/50 line-through">Bs. {Number(v.price).toFixed(2)}</span>
+                                  <span className="text-xs font-bold text-red-650">Bs. {Number(v.promo_price).toFixed(2)}</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs font-bold text-text-main">Bs. {Number(v.price).toFixed(2)}</span>
+                              )}
+                            </div>
                           </button>
                         )
                       })}
                     </div>
                   </div>
 
-                  {/* EXTRAS PIVOT DISPLAY */}
-                  {detailData?.extras && detailData.extras.length > 0 && (
+                  {/* EXTRAS SELECTABLE LIST */}
+                  {activeVariant?.extras && activeVariant.extras.length > 0 && (
                     <div className="space-y-2">
                       <Typography variant="label" className="text-[10px] uppercase tracking-widest block">
-                        Adicionales que puedes agregar:
+                        Adicionales disponibles:
                       </Typography>
-                      <div className="flex flex-wrap gap-1.5">
-                        {detailData.extras.map((ext: any) => (
-                          <Badge key={ext.id} variant="neutral">
-                            {ext.name} (+${Number(ext.price).toFixed(2)})
-                          </Badge>
-                        ))}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {activeVariant.extras.map((ext: any) => {
+                          const isChecked = selectedExtraIds.includes(ext.id)
+                          return (
+                            <label
+                              key={ext.id}
+                              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer select-none transition-all text-xs font-semibold ${isChecked
+                                ? 'border-primary bg-secondary/10'
+                                : 'border-border hover:border-stone-400 bg-surface'
+                                }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    if (isChecked) {
+                                      setSelectedExtraIds(prev => prev.filter(id => id !== ext.id))
+                                    } else {
+                                      setSelectedExtraIds(prev => [...prev, ext.id])
+                                    }
+                                  }}
+                                  className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 accent-primary"
+                                />
+                                <span className="text-text-main">{ext.name}</span>
+                              </div>
+                              <span className="text-primary font-bold">+Bs. {Number(ext.price).toFixed(2)}</span>
+                            </label>
+                          )
+                        })}
                       </div>
                     </div>
                   )}
 
+                  {/* QUANTITY STEPPER SELECTOR */}
+                  <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
+                    <span className="text-[10px] uppercase tracking-widest font-bold">Cantidad:</span>
+                    <div className="flex items-center bg-stone-50 dark:bg-stone-900 border border-border rounded-lg p-1">
+                      <button
+                        type="button"
+                        onClick={() => setItemQuantity(prev => Math.max(1, prev - 1))}
+                        className="p-1.5 text-text-sub hover:text-primary transition-colors cursor-pointer"
+                      >
+                        <FiMinus className="text-xs" />
+                      </button>
+                      <span className="font-bold text-sm text-text-main w-8 text-center">{itemQuantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => setItemQuantity(prev => prev + 1)}
+                        className="p-1.5 text-text-sub hover:text-primary transition-colors cursor-pointer"
+                      >
+                        <FiPlus className="text-xs" />
+                      </button>
+                    </div>
+                  </div>
+
                   {/* PRICE & ADD ACTION */}
                   {activeVariant && (
-                    <div className="border-t border-border pt-5 flex items-center justify-between gap-4">
+                    <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
                       <div className="space-y-0.5">
                         <span className="text-[9px] text-text-sub block font-bold uppercase tracking-widest">Precio Unitario</span>
                         <PriceTag
                           price={activeVariant.price}
-                          promoPrice={getPromoPrice(activeVariant.price, detailData?.promotions)}
+                          promoPrice={activeVariant.promo_price}
                           size="lg"
                         />
                       </div>
                       <Button
                         onClick={() => {
-                          setCartCount(prev => prev + 1)
-                          toast.success('Agregado al pedido.')
+                          const selectedExtras = (activeVariant.extras || [])
+                            .filter((e: any) => selectedExtraIds.includes(e.id))
+                            .map((e: any) => ({
+                              id: e.id,
+                              name: e.name,
+                              price: Number(e.price)
+                            }))
+
+                          addToCart({
+                            product_id: detailData.id,
+                            product_name: detailData.name,
+                            variant_id: activeVariant.id,
+                            variant_name: activeVariant.name,
+                            sku: activeVariant.sku,
+                            base_price: Number(activeVariant.price),
+                            promo_price: activeVariant.promo_price ? Number(activeVariant.promo_price) : null,
+                            quantity: itemQuantity,
+                            extras: selectedExtras,
+                            image_url: detailData.gallery?.[0]?.image_url || null
+                          })
+                          toast.success('Producto añadido al carrito.')
                           setSelectedProductId(null)
                         }}
-                        className="text-[10px] uppercase tracking-wider"
+                        className="text-[10px] uppercase tracking-wider gap-1.5 font-bold"
                       >
-                        Añadir al pedido
+                        <FiShoppingBag className="text-xs" />
+                        <span>Añadir al pedido</span>
                       </Button>
                     </div>
                   )}
@@ -376,6 +489,7 @@ export default function Menu() {
         </Modal>
       )}
 
+      <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} />
       <Footer />
     </div>
   )

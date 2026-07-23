@@ -10,9 +10,10 @@ class ProductVariantDTO
         public readonly int $product_id,
         public readonly string $name,
         public readonly string $sku = '',
-        public readonly float $base_price = 0.00,
+        public readonly float $price = 0.00,
+        public readonly ?int $serves_people = null,
         public readonly bool $is_active = true,
-        public readonly array $extra_ids = []
+        public readonly array $extras = []
     ) {}
 
     /**
@@ -26,9 +27,10 @@ class ProductVariantDTO
             product_id: (int) $data['product_id'],
             name: (string) $data['name'],
             sku: (string) ($data['sku'] ?? ''),
-            base_price: (float) $data['base_price'],
+            price: (float) $data['price'],
+            serves_people: isset($data['serves_people']) ? (int) $data['serves_people'] : null,
             is_active: filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
-            extra_ids: (array) ($data['extra_ids'] ?? [])
+            extras: (array) ($data['extras'] ?? [])
         );
     }
 
@@ -42,7 +44,8 @@ class ProductVariantDTO
         $arr = [
             'product_id' => $this->product_id,
             'name' => $this->name,
-            'base_price' => $this->base_price,
+            'price' => $this->price,
+            'serves_people' => $this->serves_people,
             'is_active' => $this->is_active,
         ];
 

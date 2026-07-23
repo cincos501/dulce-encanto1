@@ -28,20 +28,20 @@ class ProductVariantController extends Controller
         $perPage = (int) $request->query('per_page', 10);
         $productId = $request->query('product_id') ? (int) $request->query('product_id') : null;
         $paginate = filter_var($request->query('paginate', true), FILTER_VALIDATE_BOOLEAN);
+        $onlyActive = filter_var($request->query('only_active', false), FILTER_VALIDATE_BOOLEAN);
 
         if (! $paginate) {
             $variants = $productId !== null
-                ? $this->variantService->paginate(9999, null, $productId)->getCollection()
-                : $this->variantService->all();
+                ? $this->variantService->paginate(9999, null, $productId, $onlyActive)->getCollection()
+                : $this->variantService->all($onlyActive);
 
-            return response()->json([
+            return ProductVariantResource::collection($variants->load(['product', 'extras']))->additional([
                 'success' => true,
                 'message' => 'Variantes recuperadas con éxito.',
-                'data' => ProductVariantResource::collection($variants->load(['product', 'extras'])),
             ]);
         }
 
-        $variants = $this->variantService->paginate($perPage, $search, $productId);
+        $variants = $this->variantService->paginate($perPage, $search, $productId, $onlyActive);
         $variants->getCollection()->load(['product', 'extras']);
 
         return ProductVariantResource::collection($variants)->additional([

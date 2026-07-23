@@ -1,22 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { toast } from '@/design-system'
 import { 
   CrudPage, 
   CrudTable, 
   CrudModal, 
   CrudForm, 
-  CrudDeleteDialog, 
   CrudStatusBadge 
 } from '@/shared/components/crud'
-import { Badge, Button } from '@/design-system'
+import { Badge, Button, Tooltip } from '@/design-system'
 import categoriesService from '@/shared/services/categoriesService'
 import { useAuthorization } from '@/shared/hooks/useAuthorization'
 import { Category } from '@/shared/types'
-import { FiEdit2, FiTrash2 } from 'react-icons/fi'
+import { FiEdit2 } from 'react-icons/fi'
+import { cn } from '@/shared/utils/cn'
+import { handleApiError } from '@/shared/utils/formErrors'
 
 const categorySchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.').max(50, 'El nombre no puede superar los 50 caracteres.'),
@@ -38,8 +38,6 @@ export default function Categories() {
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false)
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
 
   // React Hook Form
   const form = useForm<CategoryFormInputs>({
@@ -50,6 +48,36 @@ export default function Categories() {
       is_active: true
     }
   })
+
+  const categoryName = form.watch('name')
+
+  // Real-time uniqueness validation
+  useEffect(() => {
+    if (!categoryName || categoryName.trim().length < 2) {
+      form.clearErrors('name')
+      return
+    }
+
+    const checkUniqueness = setTimeout(async () => {
+      try {
+        const response = await categoriesService.getAll()
+        const categories = response.data?.data || []
+        const isDuplicate = categories.some(cat => 
+          cat.name.toLowerCase() === categoryName.trim().toLowerCase() && 
+          cat.id !== editingCategory?.id
+        )
+        if (isDuplicate) {
+          form.setError('name', { type: 'manual', message: 'Ya existe una categoría con ese nombre.' })
+        } else {
+          form.clearErrors('name')
+        }
+      } catch {
+        // Ignore API errors
+      }
+    }, 400)
+
+    return () => clearTimeout(checkUniqueness)
+  }, [categoryName, editingCategory, form])
 
   // Queries
   const { data: queryData, isLoading } = useQuery({
@@ -73,36 +101,22 @@ export default function Categories() {
       }
     },
     onSuccess: (response) => {
-      toast.success(response.data.message || 'Categoría guardada con éxito.')
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       closeFormModal()
     },
     onError: (err: any) => {
-      const message = err.response?.data?.message || 'Error al guardar la categoría.'
-      toast.error(message)
-    }
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => categoriesService.delete(id),
-    onSuccess: () => {
-      toast.success('Categoría eliminada con éxito.')
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
-      setIsDeleteOpen(false)
-    },
-    onError: (err: any) => {
-      const message = err.response?.data?.message || 'No se puede eliminar la categoría.'
-      toast.error(message)
+      handleApiError(err, form.setError, 'Error al guardar la categoría.')
     }
   })
 
   const toggleActiveMutation = useMutation({
     mutationFn: (id: number) => categoriesService.toggleActive(id),
     onSuccess: () => {
-      toast.success('Estado de la categoría modificado.')
       queryClient.invalidateQueries({ queryKey: ['categories'] })
     },
-    onError: () => toast.error('Error al modificar el estado.')
+    onError: (err: any) => {
+      handleApiError(err, form.setError, 'Error al modificar el estado.')
+    }
   })
 
   // Open forms
@@ -163,33 +177,35 @@ export default function Categories() {
       header: 'Acciones',
       headerClassName: 'text-right',
       cellClassName: 'text-right space-x-2',
-      cell: (item: Category) => (
-        <>
+      cell: (item: Category) => {
+        const isInactive = !item.is_active
+        const editButton = (
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => openEditModal(item)}
-            className="inline-flex items-center gap-1.5"
+            onClick={isInactive ? undefined : () => openEditModal(item)}
+            className={cn(
+              "inline-flex items-center gap-1.5",
+              isInactive && "bg-stone-200 hover:bg-stone-200 text-stone-400 cursor-not-allowed opacity-60 active:scale-100 dark:bg-stone-800 dark:text-stone-600"
+            )}
           >
             <FiEdit2 className="text-xs" />
             <span>Editar</span>
           </Button>
-          {hasPermission('categories.delete') && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-650 hover:bg-red-50 inline-flex items-center gap-1.5"
-              onClick={() => {
-                setCategoryToDelete(item);
-                setIsDeleteOpen(true);
-              }}
-            >
-              <FiTrash2 className="text-xs" />
-              <span>Eliminar</span>
-            </Button>
-          )}
-        </>
-      )
+        )
+
+        return (
+          <div className="inline-block">
+            {isInactive ? (
+              <Tooltip content="Debe activar nuevamente el registro para editarlo.">
+                {editButton}
+              </Tooltip>
+            ) : (
+              editButton
+            )}
+          </div>
+        )
+      }
     }
   ]
 
@@ -253,16 +269,6 @@ export default function Categories() {
           />
         </CrudModal>
       )}
-
-      {/* DELETE CONFIRM DIALOG */}
-      <CrudDeleteDialog
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        onConfirm={() => categoryToDelete && deleteMutation.mutate(categoryToDelete.id)}
-        isLoading={deleteMutation.isPending}
-        title="¿Eliminar Categoría?"
-        message={`Estás seguro de que deseas eliminar permanentemente la categoría "${categoryToDelete?.name}"? Esta acción no se puede deshacer.`}
-      />
     </CrudPage>
   )
 }

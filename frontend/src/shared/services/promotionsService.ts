@@ -16,8 +16,11 @@ const promotionsService = {
   /**
    * Get all promotions (typically non-paginated for selects).
    */
-  async getAll(): Promise<{ data: ApiResponse<Promotion[]> }> {
-    return api.get('/api/v1/promotions?paginate=false')
+  async getAll(onlyActive: boolean = false): Promise<{ data: ApiResponse<Promotion[]> }> {
+    const url = onlyActive
+      ? '/api/v1/promotions?paginate=false&only_active=true'
+      : '/api/v1/promotions?paginate=false'
+    return api.get(url)
   },
 
   /**
@@ -41,15 +44,24 @@ const promotionsService = {
   /**
    * Create a new promotion.
    */
-  async create(data: PromotionInput): Promise<{ data: ApiResponse<Promotion> }> {
-    return api.post('/api/v1/promotions', data)
+  async create(data: FormData): Promise<{ data: ApiResponse<Promotion> }> {
+    return api.post('/api/v1/promotions', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
   },
 
   /**
    * Update an existing promotion.
    */
-  async update(id: number, data: PromotionInput): Promise<{ data: ApiResponse<Promotion> }> {
-    return api.put(`/api/v1/promotions/${id}`, data)
+  async update(id: number, data: FormData): Promise<{ data: ApiResponse<Promotion> }> {
+    data.append('_method', 'PUT')
+    return api.post(`/api/v1/promotions/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
   },
 
   /**

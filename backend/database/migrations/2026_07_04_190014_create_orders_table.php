@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('set null');
             $table->enum('status', [
                 'Pendiente',
+                'Confirmado',
                 'En preparación',
-                'Decorando',
                 'Listo',
                 'Entregado',
                 'Cancelado',

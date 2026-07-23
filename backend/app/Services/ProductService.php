@@ -20,9 +20,9 @@ class ProductService
     /**
      * Get paginated and filtered products.
      */
-    public function paginate(int $perPage = 10, ?string $search = null): LengthAwarePaginator
+    public function paginate(int $perPage = 10, ?string $search = null, bool $onlyActive = false): LengthAwarePaginator
     {
-        return $this->productRepository->paginate($perPage, $search);
+        return $this->productRepository->paginate($perPage, $search, $onlyActive);
     }
 
     /**
@@ -30,9 +30,9 @@ class ProductService
      *
      * @return Collection<int, Product>
      */
-    public function all(): Collection
+    public function all(bool $onlyActive = false): Collection
     {
-        return $this->productRepository->all();
+        return $this->productRepository->all($onlyActive);
     }
 
     /**
@@ -54,6 +54,13 @@ class ProductService
      */
     public function create(ProductDTO $dto): Product
     {
+        $category = \App\Models\Category::find($dto->category_id);
+        if ($category && !$category->is_active) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'category_id' => ['No se puede crear un producto dentro de una categoría inactiva.']
+            ]);
+        }
+
         return $this->productRepository->create($dto->toArray());
     }
 
@@ -64,6 +71,19 @@ class ProductService
     {
         $product = $this->findById($id);
 
+        if ($product->category && !$product->category->is_active) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'category_id' => ['No se puede editar un producto perteneciente a una categoría inactiva.']
+            ]);
+        }
+
+        $targetCategory = \App\Models\Category::find($dto->category_id);
+        if ($targetCategory && !$targetCategory->is_active) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'category_id' => ['No se puede mover un producto a una categoría inactiva.']
+            ]);
+        }
+
         return $this->productRepository->update($product, $dto->toArray());
     }
 
@@ -73,6 +93,12 @@ class ProductService
     public function toggleActive(int $id): Product
     {
         $product = $this->findById($id);
+
+        if ($product->category && !$product->category->is_active) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'is_active' => ['No se puede activar individualmente un producto perteneciente a una categoría inactiva.']
+            ]);
+        }
 
         return $this->productRepository->update($product, [
             'is_active' => ! $product->is_active,

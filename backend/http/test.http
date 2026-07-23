@@ -1,0 +1,91 @@
+### 1. Test Valid Incoming Message (WhatsApp Simulation)
+POST https://pleased-reggae-noon-eco.trycloudflare.com/api/webhooks/chatwoot
+Content-Type: application/json
+
+{
+  "event": "message_created",
+  "message_type": "incoming",
+  "content": "Hola, ¿qué tortas tienen disponibles?",
+  "conversation": {
+    "id": 4,
+    "contact_inbox": {
+      "source_id": "59170012345"
+    }
+  },
+  "sender": {
+    "name": "Juan Pérez",
+    "phone_number": "+59170012345"
+  }
+}
+
+###
+
+### 2. Test Ignored Event (e.g. conversation_created)
+POST https://pleased-reggae-noon-eco.trycloudflare.com/api/webhooks/chatwoot
+Content-Type: application/json
+
+{
+  "event": "conversation_created",
+  "id": 4,
+  "inbox_id": 2
+}
+
+###
+
+### 3. Test Empty Message Content (Should fail content validation)
+POST https://pleased-reggae-noon-eco.trycloudflare.com/api/webhooks/chatwoot
+Content-Type: application/json
+
+{
+  "event": "message_created",
+  "message_type": "incoming",
+  "content": "",
+  "conversation": {
+    "id": 4,
+    "contact_inbox": {
+      "source_id": "59170012345"
+    }
+  },
+  "sender": {
+    "name": "Juan Pérez"
+  }
+}
+
+###
+
+### 4. Test Missing Phone Number (Should fail phone validation)
+POST https://pleased-reggae-noon-eco.trycloudflare.com/api/webhooks/chatwoot
+Content-Type: application/json
+
+{
+  "event": "message_created",
+  "message_type": "incoming",
+  "content": "Hola, qué tal",
+  "conversation": {
+    "id": 4
+  },
+  "sender": {
+    "name": "Juan Pérez"
+  }
+}
+
+###
+
+### 5. Test Outgoing Message (Should be ignored to prevent loop)
+POST https://pleased-reggae-noon-eco.trycloudflare.com/api/webhooks/chatwoot
+Content-Type: application/json
+
+{
+  "event": "message_created",
+  "message_type": "outgoing",
+  "content": "Esta es una respuesta del bot",
+  "conversation": {
+    "id": 4,
+    "contact_inbox": {
+      "source_id": "59170012345"
+    }
+  },
+  "sender": {
+    "name": "bot-ia"
+  }
+}

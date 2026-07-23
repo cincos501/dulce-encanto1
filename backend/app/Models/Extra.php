@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'description', 'price', 'is_active'])]
+#[Fillable(['name', 'description', 'is_active'])]
 class Extra extends Model
 {
     use HasFactory;
@@ -23,7 +23,6 @@ class Extra extends Model
     protected function casts(): array
     {
         return [
-            'price' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }
@@ -34,7 +33,7 @@ class Extra extends Model
     public function productVariants(): BelongsToMany
     {
         return $this->belongsToMany(ProductVariant::class, 'product_variant_extras')
-            ->withPivot('extra_price')
+            ->withPivot('price')
             ->withTimestamps();
     }
 

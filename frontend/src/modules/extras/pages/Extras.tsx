@@ -1,29 +1,25 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { toast } from '@/design-system'
 import { 
   CrudPage, 
   CrudTable, 
   CrudModal, 
   CrudForm, 
-  CrudDeleteDialog, 
   CrudStatusBadge 
 } from '@/shared/components/crud'
-import { Badge, Button } from '@/design-system'
+import { Badge, Button, Tooltip } from '@/design-system'
 import extrasService from '@/shared/services/extrasService'
 import { useAuthorization } from '@/shared/hooks/useAuthorization'
 import { Extra } from '@/shared/types'
-import { FiEdit2, FiTrash2 } from 'react-icons/fi'
+import { FiEdit2 } from 'react-icons/fi'
+import { cn } from '@/shared/utils/cn'
+import { handleApiError } from '@/shared/utils/formErrors'
 
 const extraSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.').max(100, 'El nombre no puede superar los 100 caracteres.'),
-  price: z.preprocess(
-    (val) => (val === '' ? undefined : Number(val)),
-    z.number({ invalid_type_error: 'El precio debe ser un número.' }).min(0.01, 'El precio debe ser mayor a 0.')
-  ),
   description: z.string().max(255, 'La descripción no puede superar los 255 caracteres.').optional().or(z.literal('')),
   is_active: z.boolean().default(true)
 })
@@ -42,8 +38,6 @@ export default function Extras() {
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false)
   const [editingExtra, setEditingExtra] = useState<Extra | null>(null)
-  const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false)
-  const [extraToDelete, setExtraToDelete] = useState<Extra | null>(null)
 
   // React Hook Form
   const form = useForm<ExtraFormInputs>({
@@ -51,10 +45,39 @@ export default function Extras() {
     defaultValues: {
       name: '',
       description: '',
-      price: 0,
       is_active: true
     }
   })
+
+  const extraName = form.watch('name')
+
+  // Real-time uniqueness validation
+  useEffect(() => {
+    if (!extraName || extraName.trim().length < 2) {
+      form.clearErrors('name')
+      return
+    }
+
+    const checkUniqueness = setTimeout(async () => {
+      try {
+        const response = await extrasService.getAll()
+        const extras = response.data?.data || []
+        const isDuplicate = extras.some(ext => 
+          ext.name.toLowerCase() === extraName.trim().toLowerCase() && 
+          ext.id !== editingExtra?.id
+        )
+        if (isDuplicate) {
+          form.setError('name', { type: 'manual', message: 'Ya existe un adicional con ese nombre.' })
+        } else {
+          form.clearErrors('name')
+        }
+      } catch {
+        // Ignore API errors
+      }
+    }, 400)
+
+    return () => clearTimeout(checkUniqueness)
+  }, [extraName, editingExtra, form])
 
   // Queries
   const { data: queryData, isLoading } = useQuery({
@@ -78,36 +101,22 @@ export default function Extras() {
       }
     },
     onSuccess: (response) => {
-      toast.success(response.data.message || 'Adicional guardado con éxito.')
       queryClient.invalidateQueries({ queryKey: ['extras'] })
       closeFormModal()
     },
     onError: (err: any) => {
-      const message = err.response?.data?.message || 'Error al guardar el adicional.'
-      toast.error(message)
-    }
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => extrasService.delete(id),
-    onSuccess: () => {
-      toast.success('Adicional eliminado con éxito.')
-      queryClient.invalidateQueries({ queryKey: ['extras'] })
-      setIsDeleteOpen(false)
-    },
-    onError: (err: any) => {
-      const message = err.response?.data?.message || 'No se puede eliminar el adicional.'
-      toast.error(message)
+      handleApiError(err, form.setError, 'Error al guardar el adicional.')
     }
   })
 
   const toggleActiveMutation = useMutation({
     mutationFn: (id: number) => extrasService.toggleActive(id),
     onSuccess: () => {
-      toast.success('Estado del extra modificado.')
       queryClient.invalidateQueries({ queryKey: ['extras'] })
     },
-    onError: () => toast.error('Error al modificar el estado.')
+    onError: (err: any) => {
+      handleApiError(err, form.setError, 'Error al modificar el estado.')
+    }
   })
 
   // Handlers
@@ -116,7 +125,6 @@ export default function Extras() {
     form.reset({
       name: '',
       description: '',
-      price: 0,
       is_active: true
     })
     setIsFormOpen(true)
@@ -127,7 +135,6 @@ export default function Extras() {
     form.reset({
       name: extra.name,
       description: extra.description || '',
-      price: Number(extra.price),
       is_active: extra.is_active
     })
     setIsFormOpen(true)
@@ -150,10 +157,6 @@ export default function Extras() {
       cell: (item: Extra) => <span className="font-heading font-black text-sm text-primary">{item.name}</span>
     },
     {
-      header: 'Precio',
-      cell: (item: Extra) => <span className="font-bold text-primary">${Number(item.price).toFixed(2)}</span>
-    },
-    {
       header: 'Descripción',
       cell: (item: Extra) => (
         <span className="text-text-sub block max-w-xs truncate">
@@ -174,33 +177,35 @@ export default function Extras() {
       header: 'Acciones',
       headerClassName: 'text-right',
       cellClassName: 'text-right space-x-2',
-      cell: (item: Extra) => (
-        <>
+      cell: (item: Extra) => {
+        const isInactive = !item.is_active
+        const editButton = (
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => openEditModal(item)}
-            className="inline-flex items-center gap-1.5"
+            onClick={isInactive ? undefined : () => openEditModal(item)}
+            className={cn(
+              "inline-flex items-center gap-1.5",
+              isInactive && "bg-stone-200 hover:bg-stone-200 text-stone-400 cursor-not-allowed opacity-60 active:scale-100 dark:bg-stone-800 dark:text-stone-600"
+            )}
           >
             <FiEdit2 className="text-xs" />
             <span>Editar</span>
           </Button>
-          {hasPermission('extras.delete') && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-650 hover:bg-red-50 inline-flex items-center gap-1.5"
-              onClick={() => {
-                setExtraToDelete(item);
-                setIsDeleteOpen(true);
-              }}
-            >
-              <FiTrash2 className="text-xs" />
-              <span>Eliminar</span>
-            </Button>
-          )}
-        </>
-      )
+        )
+
+        return (
+          <div className="inline-block">
+            {isInactive ? (
+              <Tooltip content="Debe activar nuevamente el registro para editarlo.">
+                {editButton}
+              </Tooltip>
+            ) : (
+              editButton
+            )}
+          </div>
+        )
+      }
     }
   ]
 
@@ -210,14 +215,6 @@ export default function Extras() {
       label: 'Nombre del Adicional',
       type: 'text' as const,
       placeholder: 'Ej. Velitas de cumpleaños, Caja de regalo...',
-      required: true
-    },
-    {
-      name: 'price',
-      label: 'Precio Extra ($)',
-      type: 'number' as const,
-      placeholder: '0.00',
-      step: '0.01',
       required: true
     },
     {
@@ -272,16 +269,6 @@ export default function Extras() {
           />
         </CrudModal>
       )}
-
-      {/* DELETE CONFIRM DIALOG */}
-      <CrudDeleteDialog
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        onConfirm={() => extraToDelete && deleteMutation.mutate(extraToDelete.id)}
-        isLoading={deleteMutation.isPending}
-        title="¿Eliminar Adicional?"
-        message={`Estás seguro de que deseas eliminar permanentemente el adicional "${extraToDelete?.name}"? Esta acción no se puede deshacer.`}
-      />
     </CrudPage>
   )
 }

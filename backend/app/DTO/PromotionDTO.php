@@ -13,7 +13,8 @@ class PromotionDTO
         public readonly float $discount = 0.00,
         public readonly string $start_date = '',
         public readonly string $end_date = '',
-        public readonly bool $is_active = true
+        public readonly bool $is_active = true,
+        public readonly ?string $image_url = null
     ) {}
 
     /**
@@ -30,7 +31,8 @@ class PromotionDTO
             discount: (float) $data['discount'],
             start_date: (string) $data['start_date'],
             end_date: (string) $data['end_date'],
-            is_active: filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN)
+            is_active: filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            image_url: isset($data['image_url']) ? (string) $data['image_url'] : null
         );
     }
 
@@ -49,6 +51,7 @@ class PromotionDTO
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
             'is_active' => $this->is_active,
+            'image_url' => $this->image_url,
         ];
     }
 }

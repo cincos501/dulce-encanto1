@@ -27,9 +27,10 @@ class CategoryController extends Controller
         $search = $request->query('search');
         $perPage = (int) $request->query('per_page', 10);
         $paginate = filter_var($request->query('paginate', true), FILTER_VALIDATE_BOOLEAN);
+        $onlyActive = filter_var($request->query('only_active', false), FILTER_VALIDATE_BOOLEAN);
 
         if (! $paginate) {
-            $categories = $this->categoryService->all();
+            $categories = $this->categoryService->all($onlyActive);
 
             return response()->json([
                 'success' => true,
@@ -38,7 +39,7 @@ class CategoryController extends Controller
             ]);
         }
 
-        $categories = $this->categoryService->paginate($perPage, $search);
+        $categories = $this->categoryService->paginate($perPage, $search, $onlyActive);
 
         return CategoryResource::collection($categories)->additional([
             'success' => true,

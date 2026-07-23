@@ -1,5 +1,6 @@
 import React from 'react'
 import { cn } from '@/shared/utils/cn'
+import { HelperText } from './HelperText'
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string;
@@ -21,9 +22,9 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
         {error && (
-          <span className="text-[10px] text-red-500 block font-semibold pl-1 animate-fade-in">
+          <HelperText error className="text-[10px] pl-1 font-semibold animate-fade-in">
             {error}
-          </span>
+          </HelperText>
         )}
       </div>
     )

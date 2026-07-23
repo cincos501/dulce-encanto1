@@ -83,6 +83,9 @@ class PermissionSeeder extends Seeder
                 'promotions.update' => 'Editar promociones existentes',
                 'promotions.delete' => 'Eliminar promociones',
             ],
+            'reports' => [
+                'reports.view' => 'Visualizar reportes del sistema',
+            ],
         ];
 
         // Create all permissions (idempotent setup)
@@ -109,7 +112,7 @@ class PermissionSeeder extends Seeder
             $adminRole->syncPermissions(array_keys($allCreatedPermissions));
         }
 
-        // Repostero: recipes, supplies view, products view, extras view, variant view
+        // Repostero: recipes, supplies view, products view, extras view, variant view, orders view, orders update
         if ($reposteroRole) {
             $reposteroRole->syncPermissions([
                 'recipes.view',
@@ -120,6 +123,8 @@ class PermissionSeeder extends Seeder
                 'products.view',
                 'extras.view',
                 'product_variants.view',
+                'orders.view',
+                'orders.update',
             ]);
         }
 
@@ -167,6 +172,7 @@ class PermissionSeeder extends Seeder
                 'customers.view',
                 'customers.create',
                 'customers.update',
+                'reports.view',
             ]);
         }
     }

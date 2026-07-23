@@ -15,17 +15,25 @@ class CategoryRepository implements CategoryRepositoryInterface
      *
      * @return Collection<int, Category>
      */
-    public function all(): Collection
+    public function all(bool $onlyActive = false): Collection
     {
-        return Category::orderBy('name')->get();
+        $query = Category::query();
+        if ($onlyActive) {
+            $query->where('is_active', true);
+        }
+        return $query->orderBy('name')->get();
     }
 
     /**
      * Get paginated and filtered categories.
      */
-    public function paginate(int $perPage = 10, ?string $search = null): LengthAwarePaginator
+    public function paginate(int $perPage = 10, ?string $search = null, bool $onlyActive = false): LengthAwarePaginator
     {
         $query = Category::query();
+
+        if ($onlyActive) {
+            $query->where('is_active', true);
+        }
 
         if ($search !== null && $search !== '') {
             $query->where(static function ($q) use ($search): void {

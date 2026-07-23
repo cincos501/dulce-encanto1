@@ -51,4 +51,55 @@ class AuthService
 
         request()->session()->regenerateToken();
     }
+
+    /**
+     * Send password reset link to user.
+     *
+     * @param  array<string, string>  $credentials
+     *
+     * @throws ValidationException
+     */
+    public function sendResetLink(array $credentials): string
+    {
+        $status = \Illuminate\Support\Facades\Password::sendResetLink($credentials);
+
+        if ($status !== \Illuminate\Support\Facades\Password::RESET_LINK_SENT) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return __($status);
+    }
+
+    /**
+     * Reset user password using token.
+     *
+     * @param  array<string, string>  $credentials
+     *
+     * @throws ValidationException
+     */
+    public function resetPassword(array $credentials): string
+    {
+        $status = \Illuminate\Support\Facades\Password::reset(
+            $credentials,
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => \Illuminate\Support\Facades\Hash::make($password)
+                ])->setRememberToken(\Illuminate\Support\Str::random(60));
+
+                $user->save();
+
+                event(new \Illuminate\Auth\Events\PasswordReset($user));
+            }
+        );
+
+        if ($status !== \Illuminate\Support\Facades\Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return __($status);
+    }
 }

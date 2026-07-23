@@ -6,7 +6,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '@/app/providers/AuthContext'
 import { Input, Button, Label, Typography } from '@/design-system'
-import { FiStar, FiArrowLeft } from 'react-icons/fi'
+import { FiStar, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi'
+import { handleApiError } from '@/shared/utils/formErrors'
 
 const loginSchema = z.object({
   email: z.string().min(1, 'El correo electrónico es requerido.').email('El correo electrónico no es válido.'),
@@ -19,8 +20,9 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const [showPassword, setShowPassword] = useState<boolean>(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInputs>({
+  const { register, handleSubmit, setError, formState: { errors } } = useForm<LoginFormInputs>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
@@ -35,8 +37,7 @@ export default function Login() {
       toast.success(`¡Bienvenido de vuelta, ${user.full_name}!`)
       navigate('/dashboard')
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Las credenciales proporcionadas son incorrectas.'
-      toast.error(errorMessage)
+      handleApiError(error, setError, 'Las credenciales proporcionadas son incorrectas.')
     } finally {
       setIsSubmitting(false)
     }
@@ -75,13 +76,31 @@ export default function Login() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" required>Contraseña</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" required>Contraseña</Label>
+              <Link 
+                to="/forgot-password" 
+                className="text-[10px] text-primary hover:underline font-bold transition-colors"
+              >
+                ¿Olvidé mi contraseña?
+              </Link>
+            </div>
             <Input
               id="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               error={errors.password?.message}
               {...register('password')}
+              suffix={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-text-sub hover:text-primary transition-colors focus:outline-none p-1 mr-0.5 rounded flex items-center justify-center cursor-pointer"
+                  title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <FiEyeOff className="text-xs shrink-0" /> : <FiEye className="text-xs shrink-0" />}
+                </button>
+              }
             />
           </div>
 

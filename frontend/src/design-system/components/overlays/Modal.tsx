@@ -1,5 +1,6 @@
 import React from 'react'
 import { cn } from '@/shared/utils/cn'
+import { FiX } from 'react-icons/fi'
 
 export interface ModalProps {
   isOpen: boolean;
@@ -36,9 +37,9 @@ export const Modal: React.FC<ModalProps> = ({
           <button 
             type="button"
             onClick={onClose}
-            className="text-text-sub hover:text-primary text-base transition-colors p-1"
+            className="text-text-sub hover:text-primary text-base transition-colors p-1 flex items-center justify-center cursor-pointer"
           >
-            ✕
+            <FiX className="w-4 h-4" />
           </button>
         </div>
 

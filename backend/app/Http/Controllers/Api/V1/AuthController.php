@@ -10,6 +10,7 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
@@ -56,6 +57,54 @@ class AuthController extends Controller
         return (new UserResource($user))->additional([
             'success' => true,
             'message' => 'Usuario recuperado con éxito.',
+        ]);
+    }
+
+    /**
+     * Send password reset link.
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email', 'exists:users,email'],
+        ], [
+            'email.required' => 'El correo electrónico es requerido.',
+            'email.email' => 'El formato del correo es inválido.',
+            'email.exists' => 'No encontramos ningún usuario con ese correo electrónico.',
+        ]);
+
+        $message = $this->authService->sendResetLink($credentials);
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+        ]);
+    }
+
+    /**
+     * Reset user password.
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $credentials = $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email', 'exists:users,email'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ], [
+            'token.required' => 'El token es requerido.',
+            'email.required' => 'El correo electrónico es requerido.',
+            'email.email' => 'El formato del correo es inválido.',
+            'email.exists' => 'El correo seleccionado no existe.',
+            'password.required' => 'La nueva contraseña es requerida.',
+            'password.min' => 'La nueva contraseña debe tener al menos 6 caracteres.',
+            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
+        ]);
+
+        $message = $this->authService->resetPassword($credentials);
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
         ]);
     }
 }

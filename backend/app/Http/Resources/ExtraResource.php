@@ -20,7 +20,7 @@ class ExtraResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'price' => (float) $this->price,
+            'price' => $this->pivot ? (float) $this->pivot->price : null,
             'is_active' => (bool) $this->is_active,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

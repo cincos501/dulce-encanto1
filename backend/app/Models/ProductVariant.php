@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['product_id', 'name', 'sku', 'base_price', 'is_active'])]
+#[Fillable(['product_id', 'name', 'sku', 'price', 'serves_people', 'is_active'])]
 class ProductVariant extends Model
 {
     use HasFactory;
@@ -24,7 +24,8 @@ class ProductVariant extends Model
     protected function casts(): array
     {
         return [
-            'base_price' => 'decimal:2',
+            'price' => 'decimal:2',
+            'serves_people' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -43,7 +44,7 @@ class ProductVariant extends Model
     public function extras(): BelongsToMany
     {
         return $this->belongsToMany(Extra::class, 'product_variant_extras')
-            ->withPivot('extra_price')
+            ->withPivot('price')
             ->withTimestamps();
     }
 

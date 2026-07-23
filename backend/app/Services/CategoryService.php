@@ -20,9 +20,9 @@ class CategoryService
     /**
      * Get paginated and filtered categories.
      */
-    public function paginate(int $perPage = 10, ?string $search = null): LengthAwarePaginator
+    public function paginate(int $perPage = 10, ?string $search = null, bool $onlyActive = false): LengthAwarePaginator
     {
-        return $this->categoryRepository->paginate($perPage, $search);
+        return $this->categoryRepository->paginate($perPage, $search, $onlyActive);
     }
 
     /**
@@ -30,9 +30,9 @@ class CategoryService
      *
      * @return Collection<int, Category>
      */
-    public function all(): Collection
+    public function all(bool $onlyActive = false): Collection
     {
-        return $this->categoryRepository->all();
+        return $this->categoryRepository->all($onlyActive);
     }
 
     /**
@@ -63,8 +63,28 @@ class CategoryService
     public function update(int $id, CategoryDTO $dto): Category
     {
         $category = $this->findById($id);
+        $oldActive = $category->is_active;
 
-        return $this->categoryRepository->update($category, $dto->toArray());
+        $updatedCategory = $this->categoryRepository->update($category, $dto->toArray());
+
+        if ($oldActive !== $updatedCategory->is_active) {
+            if (!$updatedCategory->is_active) {
+                foreach ($updatedCategory->products as $product) {
+                    $product->update([
+                        'was_active' => $product->is_active,
+                        'is_active' => false
+                    ]);
+                }
+            } else {
+                foreach ($updatedCategory->products as $product) {
+                    $product->update([
+                        'is_active' => $product->was_active
+                    ]);
+                }
+            }
+        }
+
+        return $updatedCategory;
     }
 
     /**
@@ -73,10 +93,28 @@ class CategoryService
     public function toggleActive(int $id): Category
     {
         $category = $this->findById($id);
+        $newActive = ! $category->is_active;
 
-        return $this->categoryRepository->update($category, [
-            'is_active' => ! $category->is_active,
+        $updatedCategory = $this->categoryRepository->update($category, [
+            'is_active' => $newActive,
         ]);
+
+        if (!$newActive) {
+            foreach ($updatedCategory->products as $product) {
+                $product->update([
+                    'was_active' => $product->is_active,
+                    'is_active' => false
+                ]);
+            }
+        } else {
+            foreach ($updatedCategory->products as $product) {
+                $product->update([
+                    'is_active' => $product->was_active
+                ]);
+            }
+        }
+
+        return $updatedCategory;
     }
 
     /**

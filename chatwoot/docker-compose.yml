@@ -1,0 +1,103 @@
+services:
+
+  chatwoot-db:
+    image: pgvector/pgvector:pg15
+    container_name: chatwoot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    networks:
+      - shared-net
+
+  chatwoot-redis:
+    image: redis:7-alpine
+    container_name: chatwoot-redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - ./redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - shared-net
+
+  chatwoot-web:
+    image: chatwoot/chatwoot:latest
+    container_name: chatwoot-web
+    restart: unless-stopped
+    depends_on:
+      - chatwoot-db
+      - chatwoot-redis
+    environment:
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - POSTGRES_HOST=chatwoot-db
+      - POSTGRES_USERNAME=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DB}
+      - REDIS_URL=redis://chatwoot-redis:6379
+      - RAILS_ENV=production
+      - NODE_ENV=production
+      - INSTALLATION_ENV=docker
+      - ACTIVE_STORAGE_SERVICE=local
+      - STORAGE_BUCKET_NAME=uploads
+      - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL}
+      - SMTP_ADDRESS=smtp.resend.com
+      - SMTP_PORT=587
+      - SMTP_DOMAIN=goblin-sw.com
+      - SMTP_USERNAME=resend
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTHENTICATION=plain
+      - SMTP_ENABLE_STARTTLS_AUTO=true
+      - SMTP_OPENSSL_VERIFY_MODE=peer
+    entrypoint: docker/entrypoints/rails.sh
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    volumes:
+      - ./uploads:/app/storage
+    ports:
+      - "3001:3000"
+    networks:
+      - shared-net
+
+  chatwoot-sidekiq:
+    image: chatwoot/chatwoot:latest
+    container_name: chatwoot-sidekiq
+    restart: unless-stopped
+    depends_on:
+      - chatwoot-db
+      - chatwoot-redis
+    environment:
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - POSTGRES_HOST=chatwoot-db
+      - POSTGRES_USERNAME=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DB}
+      - REDIS_URL=redis://chatwoot-redis:6379
+      - RAILS_ENV=production
+      - NODE_ENV=production
+      - INSTALLATION_ENV=docker
+      - ACTIVE_STORAGE_SERVICE=local
+      - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL}
+      - SMTP_ADDRESS=smtp.resend.com
+      - SMTP_PORT=587
+      - SMTP_DOMAIN=goblin-sw.com
+      - SMTP_USERNAME=resend
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTHENTICATION=plain
+      - SMTP_ENABLE_STARTTLS_AUTO=true
+      - SMTP_OPENSSL_VERIFY_MODE=peer
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    volumes:
+      - ./uploads:/app/storage
+    networks:
+      - shared-net
+
+networks:
+  shared-net:
+    external: true

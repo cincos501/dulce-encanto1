@@ -32,7 +32,7 @@ class ProductRequest extends FormRequest
             'category_id' => [
                 'required',
                 'integer',
-                'exists:categories,id',
+                Rule::exists('categories', 'id')->where('is_active', true),
             ],
             'name' => [
                 'required',
@@ -55,7 +55,7 @@ class ProductRequest extends FormRequest
         return [
             'category_id.required' => 'La categoría es requerida.',
             'category_id.integer' => 'La categoría debe ser un identificador válido.',
-            'category_id.exists' => 'La categoría seleccionada no existe en el catálogo.',
+            'category_id.exists' => 'La categoría seleccionada no existe o se encuentra inactiva.',
             'name.required' => 'El nombre del producto es requerido.',
             'name.string' => 'El nombre debe ser una cadena de texto.',
             'name.max' => 'El nombre no puede superar los 255 caracteres.',

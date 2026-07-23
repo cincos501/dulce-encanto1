@@ -16,7 +16,8 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->string('name');
             $table->string('sku')->unique();
-            $table->decimal('base_price', 10, 2);
+            $table->decimal('price', 10, 2);
+            $table->integer('serves_people')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

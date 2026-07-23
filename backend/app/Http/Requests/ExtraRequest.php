@@ -36,7 +36,6 @@ class ExtraRequest extends FormRequest
                 Rule::unique('extras', 'name')->ignore($extraId),
             ],
             'description' => ['nullable', 'string', 'max:1000'],
-            'price' => ['required', 'numeric', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ];
     }
@@ -54,9 +53,6 @@ class ExtraRequest extends FormRequest
             'name.max' => 'El nombre no puede superar los 255 caracteres.',
             'name.unique' => 'Ya existe un extra con este nombre.',
             'description.max' => 'La descripción no puede superar los 1000 caracteres.',
-            'price.required' => 'El precio adicional es requerido.',
-            'price.numeric' => 'El precio debe ser un valor numérico.',
-            'price.min' => 'El precio adicional no puede ser menor a 0.',
             'is_active.boolean' => 'El campo activo debe ser verdadero o falso.',
         ];
     }

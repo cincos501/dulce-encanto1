@@ -18,37 +18,46 @@ class ProductVariantSeeder extends Seeder
     {
         $variantsMap = [
             'Torta Selva Negra' => [
-                ['name' => 'Porción', 'base_price' => 3.50],
-                ['name' => 'Torta completa', 'base_price' => 25.00],
+                ['name' => 'Porción', 'price' => 3.50, 'serves_people' => 1],
+                ['name' => 'Torta completa', 'price' => 25.00, 'serves_people' => 20],
             ],
             'Torta Tres Leches' => [
-                ['name' => 'Porción', 'base_price' => 3.80],
-                ['name' => 'Torta completa', 'base_price' => 28.00],
+                ['name' => 'Porción', 'price' => 3.80, 'serves_people' => 1],
+                ['name' => 'Torta completa', 'price' => 28.00, 'serves_people' => 20],
             ],
             'Cupcake de Vainilla' => [
-                ['name' => 'Unidad', 'base_price' => 2.00],
-                ['name' => 'Caja x6', 'base_price' => 10.00],
+                ['name' => 'Unidad', 'price' => 2.00, 'serves_people' => 1],
+                ['name' => 'Caja x6', 'price' => 10.00, 'serves_people' => 6],
             ],
             'Cupcake de Red Velvet' => [
-                ['name' => 'Unidad', 'base_price' => 2.50],
-                ['name' => 'Caja x6', 'base_price' => 12.00],
+                ['name' => 'Unidad', 'price' => 2.50, 'serves_people' => 1],
+                ['name' => 'Caja x6', 'price' => 12.00, 'serves_people' => 6],
             ],
             'Galletas de Chispas' => [
-                ['name' => 'Unidad', 'base_price' => 1.50],
-                ['name' => 'Paquete x6', 'base_price' => 7.00],
+                ['name' => 'Unidad', 'price' => 1.50, 'serves_people' => 1],
+                ['name' => 'Paquete x6', 'price' => 7.00, 'serves_people' => 6],
             ],
             'Galletas de Avena y Miel' => [
-                ['name' => 'Unidad', 'base_price' => 1.80],
-                ['name' => 'Paquete x6', 'base_price' => 8.50],
+                ['name' => 'Unidad', 'price' => 1.80, 'serves_people' => 1],
+                ['name' => 'Paquete x6', 'price' => 8.50, 'serves_people' => 6],
             ],
             'Cheesecake de Frutilla' => [
-                ['name' => 'Porción', 'base_price' => 4.00],
-                ['name' => 'Entero', 'base_price' => 32.00],
+                ['name' => 'Porción', 'price' => 4.00, 'serves_people' => 1],
+                ['name' => 'Entero', 'price' => 32.00, 'serves_people' => 16],
             ],
             'Pie de Limón' => [
-                ['name' => 'Porción', 'base_price' => 3.50],
-                ['name' => 'Entero', 'base_price' => 28.00],
+                ['name' => 'Porción', 'price' => 3.50, 'serves_people' => 1],
+                ['name' => 'Entero', 'price' => 28.00, 'serves_people' => 16],
             ],
+        ];
+
+        $extraPrices = [
+            'Extra crema' => 1.00,
+            'Nutella' => 2.00,
+            'Maní' => 0.80,
+            'Nuez' => 1.20,
+            'Chispas de chocolate' => 0.70,
+            'Velas' => 1.50,
         ];
 
         $extras = Extra::all();
@@ -67,7 +76,8 @@ class ProductVariantSeeder extends Seeder
                     'product_id' => $product->id,
                     'name' => $var['name'],
                     'sku' => $sku,
-                    'base_price' => $var['base_price'],
+                    'price' => $var['price'],
+                    'serves_people' => $var['serves_people'],
                     'is_active' => true,
                 ]);
 
@@ -83,7 +93,8 @@ class ProductVariantSeeder extends Seeder
                     $randomExtras = $extras->random(rand(2, 3));
                     $syncData = [];
                     foreach ($randomExtras as $extra) {
-                        $syncData[$extra->id] = ['extra_price' => $extra->price];
+                        $p = $extraPrices[$extra->name] ?? 1.00;
+                        $syncData[$extra->id] = ['price' => $p];
                     }
                     $variant->extras()->sync($syncData);
                 }

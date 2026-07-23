@@ -15,9 +15,16 @@ class ProductVariantRepository implements ProductVariantRepositoryInterface
      *
      * @return Collection<int, ProductVariant>
      */
-    public function all(): Collection
+    public function all(bool $onlyActive = false): Collection
     {
-        return ProductVariant::with('product')->orderBy('name')->get();
+        $query = ProductVariant::with('product');
+        if ($onlyActive) {
+            $query->where('is_active', true)
+                ->whereHas('product', static function ($pQ): void {
+                    $pQ->where('is_active', true);
+                });
+        }
+        return $query->orderBy('name')->get();
     }
 
     /**
@@ -25,23 +32,37 @@ class ProductVariantRepository implements ProductVariantRepositoryInterface
      *
      * @return Collection<int, ProductVariant>
      */
-    public function getByProductId(int $productId): Collection
+    public function getByProductId(int $productId, bool $onlyActive = false): Collection
     {
-        return ProductVariant::with('product')
-            ->where('product_id', $productId)
-            ->orderBy('name')
-            ->get();
+        $query = ProductVariant::with('product')
+            ->where('product_id', $productId);
+
+        if ($onlyActive) {
+            $query->where('is_active', true)
+                ->whereHas('product', static function ($pQ): void {
+                    $pQ->where('is_active', true);
+                });
+        }
+
+        return $query->orderBy('name')->get();
     }
 
     /**
      * Get paginated and filtered variants.
      */
-    public function paginate(int $perPage = 10, ?string $search = null, ?int $productId = null): LengthAwarePaginator
+    public function paginate(int $perPage = 10, ?string $search = null, ?int $productId = null, bool $onlyActive = false): LengthAwarePaginator
     {
         $query = ProductVariant::with('product');
 
         if ($productId !== null) {
             $query->where('product_id', $productId);
+        }
+
+        if ($onlyActive) {
+            $query->where('is_active', true)
+                ->whereHas('product', static function ($pQ): void {
+                    $pQ->where('is_active', true);
+                });
         }
 
         if ($search !== null && $search !== '') {

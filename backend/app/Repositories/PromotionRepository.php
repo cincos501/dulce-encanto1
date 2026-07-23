@@ -15,17 +15,25 @@ class PromotionRepository implements PromotionRepositoryInterface
      *
      * @return Collection<int, Promotion>
      */
-    public function all(): Collection
+    public function all(bool $onlyActive = false): Collection
     {
-        return Promotion::orderBy('name')->get();
+        $query = Promotion::query();
+        if ($onlyActive) {
+            $query->where('is_active', true);
+        }
+        return $query->orderBy('name')->get();
     }
 
     /**
      * Get paginated and filtered promotions.
      */
-    public function paginate(int $perPage = 10, ?string $search = null): LengthAwarePaginator
+    public function paginate(int $perPage = 10, ?string $search = null, bool $onlyActive = false): LengthAwarePaginator
     {
         $query = Promotion::query();
+
+        if ($onlyActive) {
+            $query->where('is_active', true);
+        }
 
         if ($search !== null && $search !== '') {
             $query->where(static function ($q) use ($search): void {

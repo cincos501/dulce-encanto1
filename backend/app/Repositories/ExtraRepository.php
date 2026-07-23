@@ -15,17 +15,25 @@ class ExtraRepository implements ExtraRepositoryInterface
      *
      * @return Collection<int, Extra>
      */
-    public function all(): Collection
+    public function all(bool $onlyActive = false): Collection
     {
-        return Extra::orderBy('name')->get();
+        $query = Extra::query();
+        if ($onlyActive) {
+            $query->where('is_active', true);
+        }
+        return $query->orderBy('name')->get();
     }
 
     /**
      * Get paginated and filtered extras.
      */
-    public function paginate(int $perPage = 10, ?string $search = null): LengthAwarePaginator
+    public function paginate(int $perPage = 10, ?string $search = null, bool $onlyActive = false): LengthAwarePaginator
     {
         $query = Extra::query();
+
+        if ($onlyActive) {
+            $query->where('is_active', true);
+        }
 
         if ($search !== null && $search !== '') {
             $query->where(static function ($q) use ($search): void {

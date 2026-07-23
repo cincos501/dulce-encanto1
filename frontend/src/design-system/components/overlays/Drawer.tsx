@@ -1,5 +1,6 @@
 import React from 'react'
 import { cn } from '@/shared/utils/cn'
+import { FiX } from 'react-icons/fi'
 
 export interface DrawerProps {
   isOpen: boolean;
@@ -32,23 +33,23 @@ export const Drawer: React.FC<DrawerProps> = ({
 
       {/* Sheet */}
       <div className={cn(
-        'absolute top-0 bottom-0 bg-white w-full max-w-md shadow-2xl flex flex-col justify-between py-6 px-6 z-10 transition-transform duration-300',
+        'absolute top-0 bottom-0 bg-surface w-full max-w-md shadow-2xl flex flex-col justify-between py-6 px-6 z-10 transition-transform duration-300 border-l border-border',
         side === 'left' 
           ? (isOpen ? 'translate-x-0 left-0' : '-translate-x-full left-0')
           : (isOpen ? 'translate-x-0 right-0' : 'translate-x-full right-0')
       )}>
         <div className="space-y-6 flex-grow flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+          <div className="flex items-center justify-between border-b border-border/60 pb-4">
             {title && (
-              <h3 className="font-extrabold text-stone-900 text-lg">{title}</h3>
+              <h3 className="font-extrabold text-primary text-lg">{title}</h3>
             )}
             <button 
               type="button"
               onClick={onClose}
-              className="text-stone-400 hover:text-stone-700 text-lg transition-colors p-1"
+              className="text-text-sub hover:text-primary text-lg transition-colors p-1 flex items-center justify-center cursor-pointer"
             >
-              ✕
+              <FiX className="w-5 h-5" />
             </button>
           </div>
 

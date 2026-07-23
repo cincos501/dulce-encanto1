@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button } from '../ui/Button'
 import { cn } from '@/shared/utils/cn'
+import { FiAlertTriangle } from 'react-icons/fi'
 
 export interface ErrorStateProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;
@@ -20,7 +21,9 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       className={cn('py-16 text-center space-y-3 max-w-sm mx-auto animate-fade-in', className)}
       {...props}
     >
-      <span className="text-4xl block select-none">⚠️</span>
+      <div className="text-4xl text-amber-500 flex justify-center select-none">
+        <FiAlertTriangle className="stroke-[1.5]" />
+      </div>
       <h3 className="font-heading font-black text-base text-primary">{title}</h3>
       <p className="text-text-sub text-xs leading-relaxed">{description}</p>
       {onRetry && (

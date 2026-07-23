@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['product_variant_id', 'supply_id', 'quantity'])]
+#[Fillable(['product_variant_id', 'supply_id', 'quantity', 'unit', 'observation'])]
 class Recipe extends Model
 {
     use HasFactory;

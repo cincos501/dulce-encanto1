@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <g transform="translate(30, 20)">
+    <path d="M 24 64 L 56 64 L 64 36 L 16 36 Z" fill="#dfab6c" />
+    <path d="M 12 36 C 12 24, 24 20, 40 20 C 56 20, 68 24, 68 36 Z" fill="#851c36" />
+    <circle cx="40" cy="16" r="6" fill="#e05638" />
+    <polygon points="40,2 44,10 52,10 46,16 48,24 40,20 32,24 34,16 28,10 36,10" fill="#f59e0b" />
+  </g>
+  <text x="80" y="125" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="14" fill="#851c36">Dulce Encanto</text>
+  <text x="80" y="142" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="8" fill="#78716c" letter-spacing="2">REPOSTERÍA GOURMET</text>
+</svg>

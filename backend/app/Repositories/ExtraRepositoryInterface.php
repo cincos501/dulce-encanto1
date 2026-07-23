@@ -15,12 +15,12 @@ interface ExtraRepositoryInterface
      *
      * @return Collection<int, Extra>
      */
-    public function all(): Collection;
+    public function all(bool $onlyActive = false): Collection;
 
     /**
      * Get paginated and filtered extras.
      */
-    public function paginate(int $perPage = 10, ?string $search = null): LengthAwarePaginator;
+    public function paginate(int $perPage = 10, ?string $search = null, bool $onlyActive = false): LengthAwarePaginator;
 
     /**
      * Find an extra by ID.

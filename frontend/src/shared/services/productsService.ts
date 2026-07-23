@@ -12,8 +12,11 @@ const productsService = {
   /**
    * Get all products (typically non-paginated for selects).
    */
-  async getAll(): Promise<{ data: ApiResponse<Product[]> }> {
-    return api.get('/api/v1/products?paginate=false')
+  async getAll(onlyActive: boolean = false): Promise<{ data: ApiResponse<Product[]> }> {
+    const url = onlyActive
+      ? '/api/v1/products?paginate=false&only_active=true'
+      : '/api/v1/products?paginate=false'
+    return api.get(url)
   },
 
   /**

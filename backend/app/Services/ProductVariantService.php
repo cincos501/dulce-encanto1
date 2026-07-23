@@ -21,9 +21,9 @@ class ProductVariantService
     /**
      * Get paginated and filtered variants.
      */
-    public function paginate(int $perPage = 10, ?string $search = null, ?int $productId = null): LengthAwarePaginator
+    public function paginate(int $perPage = 10, ?string $search = null, ?int $productId = null, bool $onlyActive = false): LengthAwarePaginator
     {
-        return $this->variantRepository->paginate($perPage, $search, $productId);
+        return $this->variantRepository->paginate($perPage, $search, $productId, $onlyActive);
     }
 
     /**
@@ -31,9 +31,9 @@ class ProductVariantService
      *
      * @return Collection<int, ProductVariant>
      */
-    public function all(): Collection
+    public function all(bool $onlyActive = false): Collection
     {
-        return $this->variantRepository->all();
+        return $this->variantRepository->all($onlyActive);
     }
 
     /**
@@ -63,10 +63,9 @@ class ProductVariantService
         $variant = $this->variantRepository->create($data);
 
         $syncData = [];
-        if (!empty($dto->extra_ids)) {
-            $extras = \App\Models\Extra::whereIn('id', $dto->extra_ids)->get();
-            foreach ($extras as $extra) {
-                $syncData[$extra->id] = ['extra_price' => $extra->price];
+        if (!empty($dto->extras)) {
+            foreach ($dto->extras as $extraItem) {
+                $syncData[(int) $extraItem['extra_id']] = ['price' => (float) $extraItem['price']];
             }
         }
         $variant->extras()->sync($syncData);
@@ -88,10 +87,9 @@ class ProductVariantService
         $updatedVariant = $this->variantRepository->update($variant, $data);
 
         $syncData = [];
-        if (!empty($dto->extra_ids)) {
-            $extras = \App\Models\Extra::whereIn('id', $dto->extra_ids)->get();
-            foreach ($extras as $extra) {
-                $syncData[$extra->id] = ['extra_price' => $extra->price];
+        if (!empty($dto->extras)) {
+            foreach ($dto->extras as $extraItem) {
+                $syncData[(int) $extraItem['extra_id']] = ['price' => (float) $extraItem['price']];
             }
         }
         $updatedVariant->extras()->sync($syncData);

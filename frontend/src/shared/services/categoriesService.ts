@@ -11,8 +11,11 @@ const categoriesService = {
   /**
    * Get all categories (typically non-paginated for select dropdowns).
    */
-  async getAll(): Promise<{ data: ApiResponse<Category[]> }> {
-    return api.get('/api/v1/categories?paginate=false')
+  async getAll(onlyActive: boolean = false): Promise<{ data: ApiResponse<Category[]> }> {
+    const url = onlyActive 
+      ? '/api/v1/categories?paginate=false&only_active=true' 
+      : '/api/v1/categories?paginate=false'
+    return api.get(url)
   },
 
   /**

@@ -3,7 +3,6 @@ import { Extra, ApiResponse, ApiPaginateResponse } from '@/shared/types'
 
 export interface ExtraInput {
   name: string;
-  price: number;
   description?: string;
   is_active?: boolean;
 }
@@ -12,8 +11,11 @@ const extrasService = {
   /**
    * Get all extras (typically non-paginated for select dropdowns).
    */
-  async getAll(): Promise<{ data: ApiResponse<Extra[]> }> {
-    return api.get('/api/v1/extras?paginate=false')
+  async getAll(onlyActive: boolean = false): Promise<{ data: ApiResponse<Extra[]> }> {
+    const url = onlyActive
+      ? '/api/v1/extras?paginate=false&only_active=true'
+      : '/api/v1/extras?paginate=false'
+    return api.get(url)
   },
 
   /**

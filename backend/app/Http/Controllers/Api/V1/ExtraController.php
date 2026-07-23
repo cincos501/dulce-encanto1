@@ -27,9 +27,10 @@ class ExtraController extends Controller
         $search = $request->query('search');
         $perPage = (int) $request->query('per_page', 10);
         $paginate = filter_var($request->query('paginate', true), FILTER_VALIDATE_BOOLEAN);
+        $onlyActive = filter_var($request->query('only_active', false), FILTER_VALIDATE_BOOLEAN);
 
         if (! $paginate) {
-            $extras = $this->extraService->all();
+            $extras = $this->extraService->all($onlyActive);
 
             return response()->json([
                 'success' => true,
@@ -38,7 +39,7 @@ class ExtraController extends Controller
             ]);
         }
 
-        $extras = $this->extraService->paginate($perPage, $search);
+        $extras = $this->extraService->paginate($perPage, $search, $onlyActive);
 
         return ExtraResource::collection($extras)->additional([
             'success' => true,

@@ -4,19 +4,24 @@ import { ProductVariant, ApiResponse, ApiPaginateResponse } from '@/shared/types
 export interface ProductVariantInput {
   product_id: number;
   name: string;
-  base_price: number;
+  price: number;
+  serves_people?: number;
   is_active?: boolean;
-  extra_ids?: number[];
+  extras?: { extra_id: number; price: number }[];
 }
 
 const productVariantsService = {
   /**
    * Get all variants (typically non-paginated, optional product_id filter).
    */
-  async getAll(productId: number | null = null): Promise<{ data: ApiResponse<ProductVariant[]> }> {
-    const url = productId 
-      ? `/api/v1/product-variants?paginate=false&product_id=${productId}`
-      : '/api/v1/product-variants?paginate=false'
+  async getAll(productId: number | null = null, onlyActive: boolean = false): Promise<{ data: ApiResponse<ProductVariant[]> }> {
+    let url = '/api/v1/product-variants?paginate=false'
+    if (productId) {
+      url += `&product_id=${productId}`
+    }
+    if (onlyActive) {
+      url += '&only_active=true'
+    }
     return api.get(url)
   },
 

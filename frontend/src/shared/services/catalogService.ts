@@ -14,6 +14,13 @@ const catalogService = {
    */
   async getProductDetail(id: number): Promise<{ data: ApiResponse<CatalogDetail> }> {
     return api.get(`/api/v1/catalog/${id}`)
+  },
+
+  /**
+   * Get active promotions with products and variants.
+   */
+  async getPromotions(): Promise<{ data: ApiResponse<any[]> }> {
+    return api.get('/api/v1/catalog/promotions')
   }
 }
 

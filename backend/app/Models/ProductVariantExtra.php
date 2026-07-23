@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['product_variant_id', 'extra_id', 'extra_price'])]
+#[Fillable(['product_variant_id', 'extra_id', 'price'])]
 class ProductVariantExtra extends Model
 {
     use HasFactory;
@@ -22,7 +22,7 @@ class ProductVariantExtra extends Model
     protected function casts(): array
     {
         return [
-            'extra_price' => 'decimal:2',
+            'price' => 'decimal:2',
         ];
     }
 

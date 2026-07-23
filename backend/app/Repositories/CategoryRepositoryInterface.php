@@ -15,12 +15,12 @@ interface CategoryRepositoryInterface
      *
      * @return Collection<int, Category>
      */
-    public function all(): Collection;
+    public function all(bool $onlyActive = false): Collection;
 
     /**
      * Get paginated and filtered categories.
      */
-    public function paginate(int $perPage = 10, ?string $search = null): LengthAwarePaginator;
+    public function paginate(int $perPage = 10, ?string $search = null, bool $onlyActive = false): LengthAwarePaginator;
 
     /**
      * Find a category by ID.

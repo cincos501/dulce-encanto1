@@ -41,8 +41,18 @@ class PromotionRequest extends FormRequest
             'start_date' => ['required', 'date_format:Y-m-d H:i:s'],
             'end_date' => ['required', 'date_format:Y-m-d H:i:s', 'after_or_equal:start_date'],
             'is_active' => ['nullable', 'boolean'],
+            'image' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'image_url' => ['nullable', 'string', 'max:500'],
             'product_variant_ids' => ['nullable', 'array'],
-            'product_variant_ids.*' => ['integer', 'exists:product_variants,id'],
+            'product_variant_ids.*' => [
+                'integer',
+                static function (string $attribute, mixed $value, \Closure $fail): void {
+                    $variant = \App\Models\ProductVariant::with('product')->find($value);
+                    if ($variant === null || ! $variant->is_active || $variant->product === null || ! $variant->product->is_active) {
+                        $fail('La presentación seleccionada no existe o se encuentra inactiva.');
+                    }
+                },
+            ],
         ];
     }
 
@@ -70,6 +80,8 @@ class PromotionRequest extends FormRequest
             'end_date.date_format' => 'La fecha de fin debe tener el formato Y-m-d H:i:s.',
             'end_date.after_or_equal' => 'La fecha de fin no puede ser anterior a la fecha de inicio.',
             'is_active.boolean' => 'El campo activo debe ser verdadero o falso.',
+            'image.image' => 'El archivo debe ser una imagen válida.',
+            'image.max' => 'La imagen no puede pesar más de 2MB.',
         ];
     }
 }

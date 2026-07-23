@@ -15,12 +15,12 @@ interface ProductRepositoryInterface
      *
      * @return Collection<int, Product>
      */
-    public function all(): Collection;
+    public function all(bool $onlyActive = false): Collection;
 
     /**
      * Get paginated and filtered products.
      */
-    public function paginate(int $perPage = 10, ?string $search = null): LengthAwarePaginator;
+    public function paginate(int $perPage = 10, ?string $search = null, bool $onlyActive = false): LengthAwarePaginator;
 
     /**
      * Find a product by ID.

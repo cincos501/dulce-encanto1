@@ -3,15 +3,15 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/shared/utils/cn'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-lg text-xs font-bold transition-all duration-200 select-none active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-stone-200',
+  'inline-flex items-center justify-center gap-2 rounded-lg text-xs font-bold transition-all duration-200 select-none active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-primary/20',
   {
     variants: {
       variant: {
         primary: 'bg-stone-900 text-white hover:bg-black dark:bg-stone-100 dark:text-stone-950 dark:hover:bg-white border border-transparent',
-        secondary: 'bg-amber-500 text-black hover:bg-amber-600 dark:bg-amber-600 dark:text-white dark:hover:bg-amber-700 border border-transparent',
+        secondary: 'bg-amber-500 text-stone-950 hover:bg-amber-600 dark:bg-amber-650 dark:text-stone-50 dark:hover:bg-amber-700 border border-transparent',
         ghost: 'text-text-sub hover:bg-stone-100/70 hover:text-primary dark:text-stone-400 dark:hover:bg-stone-800/60 dark:hover:text-stone-200',
-        destructive: 'bg-red-500 text-black hover:bg-red-600 dark:bg-red-600 dark:text-white dark:hover:bg-red-700 border border-transparent',
-        info: 'bg-blue-500 text-black hover:bg-blue-600 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700 border border-transparent',
+        destructive: 'bg-red-650 text-white hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-750 border border-transparent',
+        info: 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-650 dark:text-white dark:hover:bg-blue-750 border border-transparent',
         neutral: 'bg-stone-200 text-stone-850 hover:bg-stone-300 dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700 border border-transparent',
         link: 'text-text-main hover:underline px-0 py-0 rounded-none bg-transparent shadow-none focus:ring-0 active:scale-100'
       },

@@ -8,13 +8,13 @@ export interface PriceTagProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const PriceTag: React.FC<PriceTagProps> = ({ 
-  className, 
-  price, 
-  promoPrice, 
-  currency = '$', 
-  size = 'md', 
-  ...props 
+export const PriceTag: React.FC<PriceTagProps> = ({
+  className,
+  price,
+  promoPrice,
+  currency = 'Bs. ',
+  size = 'md',
+  ...props
 }) => {
   const hasPromo = promoPrice !== undefined && promoPrice !== null
 

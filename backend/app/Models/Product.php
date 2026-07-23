@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['category_id', 'name', 'description', 'is_active'])]
+#[Fillable(['category_id', 'name', 'description', 'is_active', 'was_active'])]
 class Product extends Model
 {
     use HasFactory, SoftDeletes;
@@ -26,6 +26,7 @@ class Product extends Model
     {
         return [
             'is_active' => 'boolean',
+            'was_active' => 'boolean',
         ];
     }
 

@@ -26,3 +26,9 @@
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Chatwoot data and uploads
+chatwoot/pgdata/
+chatwoot/redis-data/
+chatwoot/uploads/
+chatwoot.zip

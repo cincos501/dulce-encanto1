@@ -16,7 +16,8 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 class PromotionController extends Controller
 {
     public function __construct(
-        protected PromotionService $promotionService
+        protected PromotionService $promotionService,
+        protected \App\Services\StorageServiceInterface $storageService
     ) {}
 
     /**
@@ -27,9 +28,10 @@ class PromotionController extends Controller
         $search = $request->query('search');
         $perPage = (int) $request->query('per_page', 10);
         $paginate = filter_var($request->query('paginate', true), FILTER_VALIDATE_BOOLEAN);
+        $onlyActive = filter_var($request->query('only_active', false), FILTER_VALIDATE_BOOLEAN);
 
         if (! $paginate) {
-            $promotions = $this->promotionService->all()->load('variants.product');
+            $promotions = $this->promotionService->all($onlyActive)->load('variants.product');
 
             return response()->json([
                 'success' => true,
@@ -38,7 +40,7 @@ class PromotionController extends Controller
             ]);
         }
 
-        $promotions = $this->promotionService->paginate($perPage, $search);
+        $promotions = $this->promotionService->paginate($perPage, $search, $onlyActive);
         $promotions->getCollection()->load('variants.product');
 
         return PromotionResource::collection($promotions)->additional([
@@ -53,7 +55,11 @@ class PromotionController extends Controller
     public function store(PromotionRequest $request): JsonResponse|PromotionResource
     {
         try {
-            $dto = PromotionDTO::fromArray($request->validated());
+            $data = $request->validated();
+            if ($request->hasFile('image')) {
+                $data['image_url'] = $this->storageService->upload('promotions', $request->file('image'));
+            }
+            $dto = PromotionDTO::fromArray($data);
             $promotion = $this->promotionService->create($dto, $request->input('product_variant_ids', []));
 
             return (new PromotionResource($promotion->load('variants.product')))->additional([
@@ -88,7 +94,18 @@ class PromotionController extends Controller
     public function update(PromotionRequest $request, int $id): JsonResponse|PromotionResource
     {
         try {
-            $dto = PromotionDTO::fromArray($request->validated());
+            $data = $request->validated();
+            if ($request->hasFile('image')) {
+                $oldPromotion = $this->promotionService->findById($id);
+                if ($oldPromotion->image_url) {
+                    $this->storageService->delete($oldPromotion->image_url);
+                }
+                $data['image_url'] = $this->storageService->upload('promotions', $request->file('image'));
+            } else {
+                $oldPromotion = $this->promotionService->findById($id);
+                $data['image_url'] = $oldPromotion->image_url;
+            }
+            $dto = PromotionDTO::fromArray($data);
             $promotion = $this->promotionService->update($id, $dto, $request->input('product_variant_ids', []));
 
             return (new PromotionResource($promotion->load('variants.product')))->additional([
