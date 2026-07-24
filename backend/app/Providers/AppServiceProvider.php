@@ -109,6 +109,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \App\Models\Order::observe(\App\Observers\OrderObserver::class);
     }
 }

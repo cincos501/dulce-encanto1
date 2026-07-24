@@ -76,6 +76,27 @@ class ChatwootWebhookService
             $messageDto = ChatwootMessageDTO::fromWebhook($payload);
             Log::info('DEBUG: conversation_id after DTO extraction', ['id' => $messageDto->conversationId]);
 
+            // Persist the conversation ID to the Customer record
+            $phone = $messageDto->phone;
+            $customer = \App\Models\Customer::where('phone', $phone)->first();
+            if (!$customer && str_starts_with($phone, '+')) {
+                $customer = \App\Models\Customer::where('phone', ltrim($phone, '+'))->first();
+            }
+            if (!$customer && !str_starts_with($phone, '+')) {
+                $customer = \App\Models\Customer::where('phone', '+' . $phone)->first();
+            }
+
+            if ($customer) {
+                $customer->chatwoot_conversation_id = $messageDto->conversationId;
+                $customer->save();
+            } else {
+                \App\Models\Customer::create([
+                    'full_name' => $messageDto->senderName ?: 'Cliente WhatsApp',
+                    'phone' => $phone,
+                    'chatwoot_conversation_id' => $messageDto->conversationId
+                ]);
+            }
+
             // 4. Resolve and invoke ConversationOrchestrator
             $orchestrator = app(ConversationOrchestrator::class);
             $assistantResponse = $orchestrator->handle($messageDto);

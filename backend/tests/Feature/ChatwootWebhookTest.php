@@ -8,10 +8,13 @@ use App\AI\Orchestrators\ConversationOrchestrator;
 use App\Services\ChatwootService;
 use Mockery\MockInterface;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ChatwootWebhookTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
