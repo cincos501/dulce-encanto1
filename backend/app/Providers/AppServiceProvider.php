@@ -102,6 +102,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Bind StorageServiceInterface as a singleton to reuse Supabase connection details
         $this->app->singleton(StorageServiceInterface::class, SupabaseStorageService::class);
+
+        // Bind Baneco Encryption Service
+        $this->app->singleton(\App\Baneco\Contracts\EncryptionServiceInterface::class, \App\Baneco\Services\Aes256EncryptionService::class);
     }
 
     /**

@@ -150,3 +150,7 @@ Route::prefix('v1')->group(function () {
 // Chatwoot Webhook endpoint (public with token validation in Request)
 Route::post('/webhooks/chatwoot', [\App\Http\Controllers\Api\Webhooks\ChatwootWebhookController::class, 'handle'])
     ->name('webhooks.chatwoot');
+
+// Baneco Webhook endpoint (public)
+Route::post('/webhooks/baneco/payment', [\App\Baneco\Http\Controllers\BanecoWebhookController::class, 'notifyPaymentQR'])
+    ->name('webhooks.baneco.payment');
