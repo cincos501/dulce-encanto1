@@ -202,6 +202,13 @@ dulce-encanto/
 * `GROQ_MODEL`: Modelo LLM utilizado (`llama-3.3-70b-versatile`).
 * `GROQ_TEMPERATURE`: Temperatura de generación (`0.2` para control estricto de alucinaciones).
 * `GROQ_TOP_P`: Ajuste de núcleo probabilístico (`0.9`).
+* `BANECO_BASE_URL`: URL base de la API de Baneco (por defecto en certificación).
+* `BANECO_USERNAME`: Nombre de usuario asignado por el banco.
+* `BANECO_PASSWORD`: Contraseña asignada por el banco.
+* `BANECO_AES_KEY`: Llave de encriptación AES-256 bits (32 bytes).
+* `BANECO_ACCOUNT`: Número de cuenta corriente o caja de ahorro autorizada.
+* `BANECO_TIMEOUT`: Tiempo límite de las peticiones HTTP (por defecto 30).
+* `BANECO_QR_EXPIRATION_DAYS`: Días de vigencia por defecto para los códigos QR generados.
 
 ### Chatwoot (`chatwoot/.env`)
 * `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`: Credenciales del motor PostgreSQL local.
@@ -249,21 +256,26 @@ El proyecto depende actualmente de túneles externos para exponer los servidores
 * **Pendientes menores:**
   - Implementar un sistema de alertas visuales/correo cuando un insumo caiga por debajo de un umbral mínimo de stock de seguridad.
 
-### 🟡 Sprint 3: Canal de WhatsApp y Asistente IA — EN PROGRESO (Parcialmente Implementado)
+### 🟢 Sprint 3: Canal de WhatsApp y Asistente IA — COMPLETADO
 
-#### 1. Funcionalidades implementadas:
+#### Funcionalidades implementadas:
 * **Orquestación Conversacional Integrada:** Controlador de webhooks en Laravel que procesa, valida y responde de forma asíncrona a los mensajes entrantes de los clientes en Chatwoot.
 * **Grounding y Mitigación de Alucinaciones:** Prompt de sistema de Dulce Encanto con reglas restrictivas que bloquean la creación de descripciones, tamaños, ingredientes y precios inexistentes en la base de datos MySQL.
-* **Registro de Herramientas Operacionales:** Bucle interactivo de 14 herramientas que permite a la IA consultar en tiempo real el catálogo, horarios de la pastelería, disponibilidad de productos, y administrar el borrador del pedido de un cliente en Redis.
+* **Registro de Herramientas Operacionales:** Bucle interactivo de 15 herramientas que permite a la IA consultar en tiempo real el catálogo, horarios de la pastelería, disponibilidad de productos, adicionales específicos por variante (`get_variant_extras`), y administrar el borrador del pedido de un cliente en Redis.
+* **Transformación del Borrador en Pedido Real (Checkout por WhatsApp):** El asistente finaliza y registra de forma definitiva el pedido en MySQL (`orders` y `order_items`), validando 24 horas de anticipación en tortas y limpiando la memoria en Redis tras completarse.
 * **Formateador de Respuestas Estricto:** Mecanismo en el prompt del sistema que fuerza el cierre de etiquetas y la estructuración del JSON de herramientas en la API de Groq, solucionando los fallos de parseo tradicionales de Llama-3.3.
 * **Memoria conversacional acotada:** Persistencia segura de sesiones y desgloses de pedidos en Redis con límites de tamaño para evitar fallos de desbordamiento de contexto de tokens.
+* **Notificaciones Automáticas por WhatsApp:** Integración con eventos Eloquent y Observers en Laravel para enviar notificaciones de estado por WhatsApp (ej: *"Tu pedido #XX ya está listo"*).
 
-#### 2. Funcionalidades parcialmente implementadas:
-* **Integración WhatsApp de Meta Real:** La recepción del webhook de Meta WhatsApp en Chatwoot y la respuesta saliente en producción depende de las configuraciones y validaciones de tokens activos de la cuenta de desarrollador de Meta en la interfaz de Chatwoot. El flujo de eventos y webhooks interno está al 100% verificado, pero requiere la persistencia del túnel.
+### 🟢 Sprint 4: Proceso de Ventas y Pagos (Baneco) — COMPLETADO
 
-#### 3. Funcionalidades pendientes:
-* **Transformación del Borrador en Pedido Real (Checkout por WhatsApp):** Capacidad del bot conversacional para tomar el borrador del pedido en Redis (`wa_session:wa_order_draft:$phone`) y registrarlo formalmente en MySQL como una orden en estado `Pendiente` (tablas `orders` y `order_items`), devolviendo al cliente su número de pedido.
-* **Simulador de Pagos en WhatsApp:** Flujo de confirmación que le permita al cliente finalizar el pago mediante un enlace simulado o registrando una confirmación de pago manual que transicione el estado en la base de datos a `Confirmado`.
+#### Funcionalidades implementadas:
+* **Checkout Web:** Generación de pedidos permanentes en MySQL desde la interfaz web del catálogo.
+* **Integración Baneco API Market (v1.3.0):** Módulo aislado en `backend/app/Baneco/` para la comunicación con los servicios del Banco Económico S.A.
+* **Cifrado AES-256 bits:** Cifrado simétrico de credenciales y números de cuentas corrientes/ahorros en el cliente HTTP.
+* **Autenticación Bearer Token con Cache:** Gestión automatizada del ciclo de vida del Bearer Token de Baneco con caché para optimizar las peticiones de red.
+* **Generación de QR y Webhook de Pago:** Petición asíncrona de generación de códigos QR para cobros a través de Pago Simple y recepción de confirmación vía Webhook con control de idempotencia por caché de Redis.
+* **Comandos de Verificación:** Artisan commands `baneco:test` y `baneco:health` para diagnóstico rápido.
 
 ---
 
