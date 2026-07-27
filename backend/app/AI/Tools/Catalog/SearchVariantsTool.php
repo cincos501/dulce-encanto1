@@ -15,12 +15,13 @@ class SearchVariantsTool implements ToolInterface
 
     public function getName(): string
     {
+        
         return 'search_variants';
     }
 
     public function getDescription(): string
     {
-        return 'Buscar las presentaciones (variantes) de los productos del catálogo, incluyendo precio, stock y porciones (sirve para cuántas personas).';
+        return 'Buscar las presentaciones (variantes) de los productos del catálogo, incluyendo precio y porciones (sirve para cuántas personas).';
     }
 
     public function getParameters(): array
@@ -46,6 +47,11 @@ class SearchVariantsTool implements ToolInterface
         $productId = isset($arguments['product_id']) ? (int) $arguments['product_id'] : null;
         $query = $arguments['query'] ?? null;
 
+        // If product_id is specified, ignore query to avoid empty results from redundant textual search
+        if ($productId !== null) {
+            $query = null;
+        }
+
         $paginator = $this->variantRepository->paginate(
             perPage: 15,
             search: $query,
@@ -61,8 +67,7 @@ class SearchVariantsTool implements ToolInterface
         foreach ($paginator->items() as $variant) {
             $productName = $variant->product ? $variant->product->name : 'Producto';
             $portions = $variant->serves_people ? " (sirve para {$variant->serves_people} personas)" : '';
-            $stock = $variant->stock !== null ? " | Stock: {$variant->stock}" : '';
-            $result .= "- [ID Variante: {$variant->id}] {$productName} - Presentación: {$variant->name} | Precio: Bs. {$variant->price}{$portions}{$stock} | SKU: {$variant->sku}\n";
+            $result .= "- [ID Variante: {$variant->id}] {$productName} - Presentación: {$variant->name} | Precio: Bs. {$variant->price}{$portions} | SKU: {$variant->sku}\n";
         }
 
         return $result;

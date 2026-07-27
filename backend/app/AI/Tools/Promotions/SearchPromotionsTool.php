@@ -41,7 +41,7 @@ class SearchPromotionsTool implements ToolInterface
     {
         $query = $arguments['query'] ?? null;
 
-        if ($query) {
+        if ($query && !$this->isGenericQuery($query)) {
             $paginator = $this->promotionRepository->paginate(perPage: 15, search: $query, onlyActive: true);
             $promotions = collect($paginator->items());
         } else {
@@ -54,14 +54,36 @@ class SearchPromotionsTool implements ToolInterface
 
         $result = "Promociones y ofertas activas:\n";
         foreach ($promotions as $promo) {
-            $discount = $promo->discount_percentage ? " | Descuento: {$promo->discount_percentage}%" : '';
+            $discountVal = (float) $promo->discount;
+            $discount = " | Descuento: " . ($promo->discount_type === 'percentage' ? "{$discountVal}%" : "Bs. {$discountVal}");
             $validity = '';
             if ($promo->start_date && $promo->end_date) {
-                $validity = " | Válido desde: {$promo->start_date} hasta: {$promo->end_date}";
+                $validity = " | Válido desde: {$promo->start_date->format('Y-m-d')} hasta: {$promo->end_date->format('Y-m-d')}";
             }
             $result .= "- [ID Promo: {$promo->id}] {$promo->name}: {$promo->description}{$discount}{$validity}\n";
         }
 
         return $result;
+    }
+
+    protected function isGenericQuery(?string $query): bool
+    {
+        if ($query === null || trim($query) === '') {
+            return true;
+        }
+        $query = strtolower(trim($query));
+        $normalize = str_replace(
+            ['á', 'é', 'í', 'ó', 'ú', 'ñ'],
+            ['a', 'e', 'i', 'o', 'u', 'n'],
+            $query
+        );
+        $stopWords = ['muestrame', 'lista de', 'listado de', 'que tienen', 'que tiene', 'que hay', 'ver', 'mostrar', 'buscar', 'dame', 'que', 'quiero', 'tienen', 'tiene', 'hay', 'de', 'mis', 'los', 'las', 'un', 'una', 'unos', 'unas'];
+        $clean = $normalize;
+        foreach ($stopWords as $word) {
+            $clean = str_replace($word, '', $clean);
+        }
+        $clean = trim(preg_replace('/\s+/', ' ', $clean));
+        $generics = ['categoria', 'categorias', 'producto', 'productos', 'catalogo', 'todos', 'todas', 'promocion', 'promociones', 'descuento', 'descuentos', 'oferta', 'ofertas', 'extra', 'extras', 'adicional', 'adicionales'];
+        return in_array($clean, $generics, true) || empty($clean);
     }
 }

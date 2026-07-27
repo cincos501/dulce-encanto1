@@ -41,7 +41,7 @@ class SearchCategoriesTool implements ToolInterface
     {
         $query = $arguments['query'] ?? null;
 
-        if ($query) {
+        if ($query && !$this->isGenericQuery($query)) {
             $paginator = $this->categoryRepository->paginate(perPage: 20, search: $query, onlyActive: true);
             $categories = collect($paginator->items());
         } else {
@@ -58,5 +58,26 @@ class SearchCategoriesTool implements ToolInterface
         }
 
         return $result;
+    }
+
+    protected function isGenericQuery(?string $query): bool
+    {
+        if ($query === null || trim($query) === '') {
+            return true;
+        }
+        $query = strtolower(trim($query));
+        $normalize = str_replace(
+            ['á', 'é', 'í', 'ó', 'ú', 'ñ'],
+            ['a', 'e', 'i', 'o', 'u', 'n'],
+            $query
+        );
+        $stopWords = ['muestrame', 'lista de', 'listado de', 'que tienen', 'que tiene', 'que hay', 'ver', 'mostrar', 'buscar', 'dame', 'que', 'quiero', 'tienen', 'tiene', 'hay', 'de', 'mis', 'los', 'las', 'un', 'una', 'unos', 'unas'];
+        $clean = $normalize;
+        foreach ($stopWords as $word) {
+            $clean = str_replace($word, '', $clean);
+        }
+        $clean = trim(preg_replace('/\s+/', ' ', $clean));
+        $generics = ['categoria', 'categorias', 'producto', 'productos', 'catalogo', 'todos', 'todas', 'promocion', 'promociones', 'descuento', 'descuentos', 'oferta', 'ofertas', 'extra', 'extras', 'adicional', 'adicionales'];
+        return in_array($clean, $generics, true) || empty($clean);
     }
 }
