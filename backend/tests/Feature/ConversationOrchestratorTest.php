@@ -13,6 +13,7 @@ use App\DTO\ChatwootMessageDTO;
 use App\Models\WhatsAppSession;
 use App\AI\DTO\AIResponseDTO;
 use App\AI\Contracts\ToolInterface;
+use App\AI\Orders\OrderDraftManager;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -73,10 +74,17 @@ class ConversationOrchestratorTest extends TestCase
         $mockRegistry = $this->mock(ToolRegistry::class, function (MockInterface $mock) {
             $mock->shouldReceive('getToolsSchema')
                 ->once()
+                ->with('Hola', false)
                 ->andReturn([]);
         });
 
-        $orchestrator = new ConversationOrchestrator($mockMemory, $mockAIService, $mockChatwootService, $mockRegistry);
+        $mockDraft = (object)['items' => []];
+        $mockDraftManager = $this->mock(OrderDraftManager::class, function (MockInterface $mock) use ($mockDraft) {
+            $mock->shouldReceive('getDraft')
+                ->andReturn($mockDraft);
+        });
+
+        $orchestrator = new ConversationOrchestrator($mockMemory, $mockAIService, $mockChatwootService, $mockRegistry, $mockDraftManager);
         $orchestrator->handle($messageDto);
     }
 
@@ -169,6 +177,7 @@ class ConversationOrchestratorTest extends TestCase
         $mockRegistry = $this->mock(ToolRegistry::class, function (MockInterface $mock) use ($mockTool) {
             $mock->shouldReceive('getToolsSchema')
                 ->once()
+                ->with('¿Qué tortas tienen?', false)
                 ->andReturn([['type' => 'function']]);
 
             $mock->shouldReceive('get')
@@ -177,7 +186,13 @@ class ConversationOrchestratorTest extends TestCase
                 ->andReturn($mockTool);
         });
 
-        $orchestrator = new ConversationOrchestrator($mockMemory, $mockAIService, $mockChatwootService, $mockRegistry);
+        $mockDraft = (object)['items' => []];
+        $mockDraftManager = $this->mock(OrderDraftManager::class, function (MockInterface $mock) use ($mockDraft) {
+            $mock->shouldReceive('getDraft')
+                ->andReturn($mockDraft);
+        });
+
+        $orchestrator = new ConversationOrchestrator($mockMemory, $mockAIService, $mockChatwootService, $mockRegistry, $mockDraftManager);
         $orchestrator->handle($messageDto);
     }
 }

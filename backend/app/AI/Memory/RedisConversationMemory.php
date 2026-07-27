@@ -43,9 +43,9 @@ class RedisConversationMemory implements ConversationMemoryInterface
             'content' => $content,
         ];
 
-        // Keep history bounded to the last 30 messages
-        if (count($history) > 30) {
-            $history = array_slice($history, -30);
+        // Keep history bounded to the last 12 messages
+        if (count($history) > 12) {
+            $history = array_slice($history, -12);
         }
 
         $session->history = $history;
@@ -59,9 +59,9 @@ class RedisConversationMemory implements ConversationMemoryInterface
         $history = $session->history;
         $history[] = $message;
 
-        // Keep history bounded to the last 30 messages
-        if (count($history) > 30) {
-            $history = array_slice($history, -30);
+        // Keep history bounded to the last 12 messages
+        if (count($history) > 12) {
+            $history = array_slice($history, -12);
         }
 
         $session->history = $history;

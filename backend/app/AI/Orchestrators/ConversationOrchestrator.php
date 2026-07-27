@@ -11,13 +11,16 @@ use App\DTO\ChatwootMessageDTO;
 use App\Services\ChatwootService;
 use Illuminate\Support\Facades\Log;
 
+use App\AI\Orders\OrderDraftManager;
+
 class ConversationOrchestrator
 {
     public function __construct(
         protected ConversationMemoryInterface $memory,
         protected AIConversationService $aiService,
         protected ChatwootService $chatwootService,
-        protected ToolRegistry $toolRegistry
+        protected ToolRegistry $toolRegistry,
+        protected OrderDraftManager $draftManager
     ) {}
 
     /**
@@ -34,8 +37,17 @@ class ConversationOrchestrator
         $this->memory->addMessage($session, 'user', $message->text);
         $session->lastMessage = $message->text;
 
-        // 3. Get registered tools schema
-        $toolsSchema = $this->toolRegistry->getToolsSchema();
+        // Check if there is an active draft (has items in cart) to decide on tools filtering
+        $hasActiveDraft = false;
+        try {
+            $draft = $this->draftManager->getDraft($phone);
+            $hasActiveDraft = !empty($draft->items);
+        } catch (\Throwable $e) {
+            Log::warning('Error checking active draft in orchestrator', ['error' => $e->getMessage()]);
+        }
+
+        // 3. Get registered tools schema dynamically filtered by context
+        $toolsSchema = $this->toolRegistry->getToolsSchema($message->text, $hasActiveDraft);
 
         $maxIterations = 5; // Prevent infinite tool calling loops
         $iteration = 0;
