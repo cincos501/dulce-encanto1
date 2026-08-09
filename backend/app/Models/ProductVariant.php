@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['product_id', 'name', 'sku', 'price', 'serves_people', 'is_active'])]
+#[Fillable(['product_id', 'name', 'sku', 'price', 'serves_people', 'is_active', 'sale_type', 'stock'])]
 class ProductVariant extends Model
 {
     use HasFactory;
@@ -27,6 +27,7 @@ class ProductVariant extends Model
             'price' => 'decimal:2',
             'serves_people' => 'integer',
             'is_active' => 'boolean',
+            'stock' => 'integer',
         ];
     }
 
@@ -78,5 +79,13 @@ class ProductVariant extends Model
     public function promotions(): BelongsToMany
     {
         return $this->belongsToMany(Promotion::class, 'promotion_product_variant', 'product_variant_id', 'promotion_id');
+    }
+
+    /**
+     * Get the manual production batches for this variant.
+     */
+    public function productionBatches(): HasMany
+    {
+        return $this->hasMany(ProductionBatch::class);
     }
 }

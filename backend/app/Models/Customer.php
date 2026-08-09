@@ -21,4 +21,14 @@ class Customer extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    /**
+     * Mutator to automatically normalize phone numbers.
+     */
+    protected function phone(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            set: fn (?string $value) => $value !== null ? \App\Support\PhoneHelper::normalize($value) : null
+        );
+    }
 }

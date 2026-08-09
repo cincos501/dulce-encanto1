@@ -90,15 +90,21 @@ class OrderNotificationTest extends TestCase
         $this->assertEquals('Listo', $updatedOrder->status);
     }
 
-    public function test_change_status_to_non_ready_does_not_trigger_chatwoot_message(): void
+    public function test_change_status_to_confirmed_triggers_client_notification(): void
     {
         // Reset order status to "Pendiente" to perform a clean update
         $this->order->status = 'Pendiente';
         $this->order->save();
 
-        // 1. Mock ChatwootService to verify sendMessage is never called
+        // 1. Mock ChatwootService to verify sendMessage is called
         $this->mock(ChatwootService::class, function (MockInterface $mock) {
-            $mock->shouldNotReceive('sendMessage');
+            $mock->shouldReceive('sendMessage')
+                ->once()
+                ->with(12345, \Mockery::on(function ($text) {
+                    return str_contains($text, 'confirmado correctamente') && 
+                           str_contains($text, '#' . $this->order->id);
+                }))
+                ->andReturn(['id' => 999]);
         });
 
         // 2. Resolve OrderService and update status to "Confirmado"

@@ -21,7 +21,7 @@ class OrderSeeder extends Seeder
         $ordersData = [
             // Order 1
             [
-                'customer_phone' => '+56911112222', // María José Soto
+                'customer_phone' => '59177872031', // María José Soto
                 'status' => 'Pendiente',
                 'delivery_date' => now()->addDays(2),
                 'items' => [
@@ -31,7 +31,7 @@ class OrderSeeder extends Seeder
             ],
             // Order 2
             [
-                'customer_phone' => '+56933334444', // Juan Carlos Perez
+                'customer_phone' => '59177872032', // Juan Carlos Perez
                 'status' => 'Confirmado',
                 'delivery_date' => now()->addDays(1),
                 'items' => [
@@ -40,7 +40,7 @@ class OrderSeeder extends Seeder
             ],
             // Order 3
             [
-                'customer_phone' => '+56955556666', // Sofía Camila Castro
+                'customer_phone' => '59177872033', // Sofía Camila Castro
                 'status' => 'Pendiente',
                 'delivery_date' => now()->addDays(3),
                 'items' => [
@@ -49,7 +49,7 @@ class OrderSeeder extends Seeder
             ],
             // Order 4
             [
-                'customer_phone' => '+56911112222', // María José Soto
+                'customer_phone' => '59177872031', // María José Soto
                 'status' => 'Listo',
                 'delivery_date' => now()->subDay(),
                 'items' => [
@@ -59,7 +59,8 @@ class OrderSeeder extends Seeder
         ];
 
         foreach ($ordersData as $oData) {
-            $customer = Customer::where('phone', $oData['customer_phone'])->first();
+            $normalizedPhone = \App\Support\PhoneHelper::normalize($oData['customer_phone']);
+            $customer = Customer::where('phone', $normalizedPhone)->first();
             if (! $customer) {
                 continue;
             }

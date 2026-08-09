@@ -43,12 +43,7 @@ class RedisConversationMemory implements ConversationMemoryInterface
             'content' => $content,
         ];
 
-        // Keep history bounded to the last 12 messages
-        if (count($history) > 12) {
-            $history = array_slice($history, -12);
-        }
-
-        $session->history = $history;
+        $session->history = $this->boundHistory($history);
     }
 
     /**
@@ -59,12 +54,40 @@ class RedisConversationMemory implements ConversationMemoryInterface
         $history = $session->history;
         $history[] = $message;
 
-        // Keep history bounded to the last 12 messages
-        if (count($history) > 12) {
-            $history = array_slice($history, -12);
+        $session->history = $this->boundHistory($history);
+    }
+
+    /**
+     * Keep history bounded to the last 12 messages and ensure the first message is always a user message.
+     */
+    protected function boundHistory(array $history, int $limit = 12): array
+    {
+        if (count($history) <= $limit) {
+            return $history;
         }
 
-        $session->history = $history;
+        $history = array_slice($history, -$limit);
+
+        // Clean up any leading model/assistant or tool response messages so the history always starts with user
+        while (count($history) > 0) {
+            $first = $history[0];
+            $role = $first['role'] ?? 'user';
+            
+            if ($role !== 'user' && $role !== 'system') {
+                array_shift($history);
+                continue;
+            }
+
+            // If it's user role, ensure it's not a tool response representation
+            if ($role === 'user' && (isset($first['tool_calls']) || isset($first['name']))) {
+                array_shift($history);
+                continue;
+            }
+
+            break;
+        }
+
+        return $history;
     }
 
     /**

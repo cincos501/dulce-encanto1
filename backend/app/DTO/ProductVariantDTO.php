@@ -13,6 +13,8 @@ class ProductVariantDTO
         public readonly float $price = 0.00,
         public readonly ?int $serves_people = null,
         public readonly bool $is_active = true,
+        public readonly string $sale_type = 'MADE_TO_ORDER',
+        public readonly int $stock = 0,
         public readonly array $extras = []
     ) {}
 
@@ -23,6 +25,7 @@ class ProductVariantDTO
      */
     public static function fromArray(array $data): self
     {
+        $saleType = (string) ($data['sale_type'] ?? 'MADE_TO_ORDER');
         return new self(
             product_id: (int) $data['product_id'],
             name: (string) $data['name'],
@@ -30,6 +33,8 @@ class ProductVariantDTO
             price: (float) $data['price'],
             serves_people: isset($data['serves_people']) ? (int) $data['serves_people'] : null,
             is_active: filter_var($data['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            sale_type: $saleType,
+            stock: $saleType === 'MADE_TO_ORDER' ? 0 : (int) ($data['stock'] ?? 0),
             extras: (array) ($data['extras'] ?? [])
         );
     }
@@ -47,6 +52,8 @@ class ProductVariantDTO
             'price' => $this->price,
             'serves_people' => $this->serves_people,
             'is_active' => $this->is_active,
+            'sale_type' => $this->sale_type,
+            'stock' => $this->stock,
         ];
 
         if ($this->sku !== '') {

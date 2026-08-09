@@ -71,4 +71,60 @@ class ChatwootService
             throw $e;
         }
     }
+
+    /**
+     * Send an internal private note to a Chatwoot conversation (visible to agents only).
+     */
+    public function sendPrivateNote(int $conversationId, string $text): array
+    {
+        if (!config('chatwoot.send_responses', true)) {
+            return ['id' => 0, 'content' => $text];
+        }
+
+        try {
+            $endpoint = "{$this->url}/api/v1/accounts/{$this->accountId}/conversations/{$conversationId}/messages";
+
+            $response = Http::withHeaders([
+                'api_access_token' => $this->apiToken,
+            ])
+            ->acceptJson()
+            ->post($endpoint, [
+                'content' => $text,
+                'message_type' => 'outgoing',
+                'private' => true,
+            ]);
+
+            return $response->json() ?? [];
+        } catch (\Throwable $e) {
+            Log::warning('Chatwoot API sendPrivateNote exception', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Toggle typing indicator status on a Chatwoot conversation.
+     */
+    public function toggleTypingStatus(int $conversationId, bool $isTyping = true): array
+    {
+        if (!config('chatwoot.send_responses', true)) {
+            return [];
+        }
+
+        try {
+            $endpoint = "{$this->url}/api/v1/accounts/{$this->accountId}/conversations/{$conversationId}/toggle_typing_status";
+
+            $response = Http::withHeaders([
+                'api_access_token' => $this->apiToken,
+            ])
+            ->acceptJson()
+            ->post($endpoint, [
+                'typing_status' => $isTyping ? 'on' : 'off',
+            ]);
+
+            return $response->json() ?? [];
+        } catch (\Throwable $e) {
+            Log::warning('Chatwoot API toggleTypingStatus exception', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
 }

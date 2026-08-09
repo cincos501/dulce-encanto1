@@ -36,4 +36,14 @@ class Supplier extends Model
             ->withPivot('purchase_price')
             ->withTimestamps();
     }
+
+    /**
+     * Mutator to automatically normalize phone numbers.
+     */
+    protected function phone(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            set: fn (?string $value) => $value !== null ? \App\Support\PhoneHelper::normalize($value) : null
+        );
+    }
 }

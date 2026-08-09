@@ -10,6 +10,8 @@ import PublicPromotions from '@/modules/catalog/pages/Promotions'
 import Contact from '@/modules/catalog/pages/Contact'
 import Nosotros from '@/modules/catalog/pages/Nosotros'
 import Servicios from '@/modules/catalog/pages/Servicios'
+import PublicPayment from '@/modules/catalog/pages/PublicPayment'
+import PublicOrderHistory from '@/modules/catalog/pages/PublicOrderHistory'
 import Login from '@/modules/auth/pages/Login'
 import ForgotPassword from '@/modules/auth/pages/ForgotPassword'
 import ResetPassword from '@/modules/auth/pages/ResetPassword'
@@ -61,6 +63,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/payment/:qrId" element={<PublicPayment />} />
+            <Route path="/history/:phoneToken" element={<PublicOrderHistory />} />
             
             {/* Protected Administrative Routes using AdminLayout layout wrapper */}
             <Route 

@@ -18,6 +18,8 @@ export interface CartItem {
   quantity: number;
   extras: CartExtra[];
   image_url?: string | null;
+  sale_type?: string;
+  stock?: number;
 }
 
 interface CartContextType {
@@ -66,10 +68,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     let updatedItems = [...cartItems]
 
     if (existingIndex > -1) {
-      updatedItems[existingIndex].quantity += newItem.quantity
+      let targetQty = updatedItems[existingIndex].quantity + newItem.quantity
+      if (newItem.sale_type === 'READY_STOCK' && newItem.stock !== undefined) {
+        targetQty = Math.min(newItem.stock, targetQty)
+      }
+      updatedItems[existingIndex].quantity = targetQty
     } else {
+      let targetQty = newItem.quantity
+      if (newItem.sale_type === 'READY_STOCK' && newItem.stock !== undefined) {
+        targetQty = Math.min(newItem.stock, targetQty)
+      }
       updatedItems.push({
         ...newItem,
+        quantity: targetQty,
         id: itemId
       })
     }
@@ -80,7 +91,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = (itemId: string, quantity: number) => {
     let updatedItems = cartItems.map(item => {
       if (item.id === itemId) {
-        return { ...item, quantity: Math.max(0, quantity) }
+        let finalQty = Math.max(0, quantity)
+        if (item.sale_type === 'READY_STOCK' && item.stock !== undefined) {
+          finalQty = Math.min(item.stock, finalQty)
+        }
+        return { ...item, quantity: finalQty }
       }
       return item
     }).filter(item => item.quantity > 0)

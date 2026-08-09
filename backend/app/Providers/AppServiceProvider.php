@@ -67,7 +67,16 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ReportRepositoryInterface::class, ReportRepository::class);
         $this->app->bind(WhatsAppSessionRepositoryInterface::class, RedisWhatsAppSessionRepository::class);
         $this->app->bind(ConversationMemoryInterface::class, RedisConversationMemory::class);
-        $this->app->bind(LLMProviderInterface::class, GroqProvider::class);
+        $this->app->bind(LLMProviderInterface::class, function ($app) {
+            $provider = config('ai.provider');
+            if ($provider === 'openai') {
+                return $app->make(\App\AI\Providers\OpenAIProvider::class);
+            }
+            if ($provider === 'gemini') {
+                return $app->make(\App\AI\Providers\GeminiProvider::class);
+            }
+            return $app->make(\App\AI\Providers\GroqProvider::class);
+        });
 
         // Auto-discover and register all AI Tools under app/AI/Tools
         $toolsPath = realpath(app_path('AI/Tools'));
@@ -113,5 +122,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \App\Models\Order::observe(\App\Observers\OrderObserver::class);
+
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\ReadyStockOutOfStock::class,
+            [\App\Listeners\HandleReadyStockOutOfStock::class, 'handle']
+        );
+
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\SupplyStockLow::class,
+            [\App\Listeners\HandleSupplyStockLow::class, 'handle']
+        );
     }
 }

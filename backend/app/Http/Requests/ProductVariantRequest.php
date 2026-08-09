@@ -68,6 +68,16 @@ class ProductVariantRequest extends FormRequest
                 'numeric',
                 'min:0',
             ],
+            'sale_type' => [
+                'nullable',
+                'string',
+                Rule::in(['READY_STOCK', 'MADE_TO_ORDER']),
+            ],
+            'stock' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
         ];
     }
 

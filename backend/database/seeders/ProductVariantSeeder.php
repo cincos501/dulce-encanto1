@@ -71,6 +71,9 @@ class ProductVariantSeeder extends Seeder
             foreach ($variants as $var) {
                 $sku = $this->generateUniqueSku($productName, $var['name']);
 
+                $saleType = ($var['name'] === 'Porción' || $var['name'] === 'Unidad') ? 'READY_STOCK' : 'MADE_TO_ORDER';
+                $stock = ($saleType === 'READY_STOCK') ? 15 : 0;
+
                 // Create the variant
                 $variant = ProductVariant::create([
                     'product_id' => $product->id,
@@ -79,6 +82,8 @@ class ProductVariantSeeder extends Seeder
                     'price' => $var['price'],
                     'serves_people' => $var['serves_people'],
                     'is_active' => true,
+                    'sale_type' => $saleType,
+                    'stock' => $stock,
                 ]);
 
                 // Create 1 primary image for the variant

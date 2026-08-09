@@ -16,28 +16,28 @@ class SupplierSeeder extends Seeder
     {
         $suppliers = [
             [
-                'business_name' => 'Distribuidora Soprole',
-                'phone' => '+56912345678',
-                'email' => 'ventas@soprole.cl',
-                'address' => 'Av. Vitacura 4400, Santiago',
+                'business_name' => 'Distribuidora Pil Bolivia',
+                'phone' => '59170012341',
+                'email' => 'ventas@pil.com.bo',
+                'address' => 'Av. Blanco Galindo Km 7, Cochabamba',
             ],
             [
-                'business_name' => 'Molino Linderos',
-                'phone' => '+56987654321',
-                'email' => 'contacto@linderos.cl',
-                'address' => 'Camino Linderos S/N, Buin',
+                'business_name' => 'Molino La Estancia',
+                'phone' => '59170012342',
+                'email' => 'contacto@laestancia.com.bo',
+                'address' => 'Zona Industrial, Santa Cruz',
             ],
             [
-                'business_name' => 'Comercializadora Alvi',
-                'phone' => '+56223456789',
-                'email' => 'soporte@alvi.cl',
-                'address' => 'Av. Américo Vespucio 1500, Pudahuel',
+                'business_name' => 'Comercializadora Fidalga',
+                'phone' => '59170012343',
+                'email' => 'soporte@fidalga.com.bo',
+                'address' => 'Av. Banzer entre 2do y 3er anillo, Santa Cruz',
             ],
             [
-                'business_name' => 'Insumos Pasteleros del Sur',
-                'phone' => '+56944445555',
-                'email' => 'pedidos@insumospasteleros.cl',
-                'address' => 'Calle Los Aromos 123, Temuco',
+                'business_name' => 'Insumos Pasteleros del Oriente',
+                'phone' => '59170012344',
+                'email' => 'pedidos@insumosoriente.com.bo',
+                'address' => 'Calle Arenales 456, Santa Cruz',
             ],
         ];
 

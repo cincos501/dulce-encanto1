@@ -60,31 +60,41 @@ class ChatwootWebhookService
             ];
         }
 
-        if (empty($content)) {
-            Log::warning('Rejected webhook message: message content is empty');
+        $attachments = $payload['attachments'] ?? [];
+
+        if (empty($content) && empty($attachments)) {
+            Log::warning('Rejected webhook message: message content and attachments are empty');
             return [
                 'status' => 200,
                 'message' => 'Missing message content'
             ];
         }
 
-        // 2. Programmatically disable sending replies back via Chatwoot API during this sprint
-        //config(['chatwoot.send_responses' => false]);
+        // Idempotency filter using Redis (disabled in testing environment)
+        $messageId = $payload['id'] ?? null;
+        if ($messageId && !app()->environment('testing')) {
+            $lockKey = "chatwoot_msg_processed:{$messageId}";
+            $isNew = \Illuminate\Support\Facades\Redis::setnx($lockKey, "1");
+            if (!$isNew) {
+                Log::info('Ignored duplicate Chatwoot message webhook', [
+                    'message_id' => $messageId
+                ]);
+                return [
+                    'status' => 200,
+                    'message' => 'Duplicate message ignored'
+                ];
+            }
+            \Illuminate\Support\Facades\Redis::expire($lockKey, 3600);
+        }
 
         try {
             // 3. Construct ChatwootMessageDTO
             $messageDto = ChatwootMessageDTO::fromWebhook($payload);
             Log::info('DEBUG: conversation_id after DTO extraction', ['id' => $messageDto->conversationId]);
 
-            // Persist the conversation ID to the Customer record
-            $phone = $messageDto->phone;
-            $customer = \App\Models\Customer::where('phone', $phone)->first();
-            if (!$customer && str_starts_with($phone, '+')) {
-                $customer = \App\Models\Customer::where('phone', ltrim($phone, '+'))->first();
-            }
-            if (!$customer && !str_starts_with($phone, '+')) {
-                $customer = \App\Models\Customer::where('phone', '+' . $phone)->first();
-            }
+            // Persist the conversation ID to the Customer record (fast DB update)
+            $normalizedPhone = \App\Support\PhoneHelper::normalize($messageDto->phone);
+            $customer = \App\Models\Customer::where('phone', $normalizedPhone)->first();
 
             if ($customer) {
                 $customer->chatwoot_conversation_id = $messageDto->conversationId;
@@ -92,26 +102,34 @@ class ChatwootWebhookService
             } else {
                 \App\Models\Customer::create([
                     'full_name' => $messageDto->senderName ?: 'Cliente WhatsApp',
-                    'phone' => $phone,
+                    'phone' => $normalizedPhone,
                     'chatwoot_conversation_id' => $messageDto->conversationId
                 ]);
             }
 
-            // 4. Resolve and invoke ConversationOrchestrator
-            $orchestrator = app(ConversationOrchestrator::class);
-            $assistantResponse = $orchestrator->handle($messageDto);
+            // 4. Debounce buffer in Redis to combine rapid consecutive messages
+            $phone = $messageDto->phone;
+            $bufferKey = "chatwoot_buffer:{$phone}";
+            $timeKey = "chatwoot_last_time:{$phone}";
+            $now = microtime(true);
 
-            // 5. Log structured details as required
-            Log::info("Incoming message:\n" . $phoneNumber . "\n\n" . $content);
-            Log::info("Assistant response:\n" . $assistantResponse);
+            if (!app()->environment('testing')) {
+                \Illuminate\Support\Facades\Redis::rpush($bufferKey, $messageDto->text);
+                \Illuminate\Support\Facades\Redis::expire($bufferKey, 60);
+                \Illuminate\Support\Facades\Redis::set($timeKey, (string) $now, 'EX', 60);
+            }
+
+            // Dispatch delayed job with 3-second grace window to buffer rapid messages
+            \App\Jobs\ProcessIncomingMessageJob::dispatch($payload, $now)->delay(now()->addSeconds(3));
+
+            Log::info("Webhook processed & ProcessIncomingMessageJob dispatched (3s grace time) for conversation #{$messageDto->conversationId}");
 
             return [
                 'status' => 200,
                 'message' => 'Webhook message processed successfully'
             ];
         } catch (\Throwable $e) {
-            // 6. Handle exception and return HTTP 200 to prevent infinite retries
-            Log::error('Error occurred inside ConversationOrchestrator execution', [
+            Log::error('Error occurred inside ChatwootWebhookService execution', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);

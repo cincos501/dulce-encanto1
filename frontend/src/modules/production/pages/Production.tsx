@@ -1,18 +1,49 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import { 
   CrudPage, 
   CrudTable, 
   CrudModal 
 } from '@/shared/components/crud'
-import { Badge, Button, Divider, Typography, Card, CardContent } from '@/design-system'
+import { 
+  Badge, 
+  Button, 
+  Divider, 
+  Typography, 
+  Card, 
+  CardContent,
+  Tabs,
+  Label,
+  Input,
+  Select,
+  Textarea
+} from '@/design-system'
 import ordersService, { Order, OrderItem } from '@/shared/services/ordersService'
 import suppliesService from '@/shared/services/suppliesService'
+import productionService, { ProductionBatch } from '@/shared/services/productionService'
+import productVariantsService from '@/shared/services/productVariantsService'
 import { useAuthorization } from '@/shared/hooks/useAuthorization'
 import { Supply } from '@/shared/types'
-import { FiPlay, FiCheck, FiX, FiInfo, FiTruck, FiClock } from 'react-icons/fi'
+import { FiPlay, FiCheck, FiX, FiInfo, FiTruck, FiClock, FiPlus, FiAlertTriangle, FiList } from 'react-icons/fi'
 import { toast } from 'sonner'
 import { cn } from '@/shared/utils/cn'
+
+const productionBatchSchema = z.object({
+  product_variant_id: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+    z.number({ required_error: 'La presentación es requerida.' }).min(1, 'Presentación no válida.')
+  ),
+  quantity: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+    z.number({ required_error: 'La cantidad es requerida.' }).int().min(1, 'La cantidad debe ser mayor a 0.')
+  ),
+  notes: z.string().max(1000, 'Las notas no pueden superar los 1000 caracteres.').optional().or(z.literal('')),
+})
+
+type ProductionFormInputs = z.infer<typeof productionBatchSchema>
 
 export default function Production() {
   const queryClient = useQueryClient()
@@ -23,6 +54,70 @@ export default function Production() {
   const [page, setPage] = useState<number>(1)
   const [statusFilter, setStatusFilter] = useState<string>('') // empty means 'All' or filtered locally
   const perPage = 10
+
+  // Tab section
+  const [activeSection, setActiveSection] = useState<'orders' | 'manual_production'>('orders')
+
+  // Manual production state
+  const [productionPage, setProductionPage] = useState<number>(1)
+  const [isProductionModalOpen, setIsProductionModalOpen] = useState<boolean>(false)
+
+  // Query: Paginate Production Batches
+  const { data: productionHistoryData, isLoading: isLoadingProduction } = useQuery({
+    queryKey: ['production-history', productionPage],
+    queryFn: async () => {
+      const response = await productionService.paginate(productionPage, 10)
+      return response.data
+    },
+    enabled: activeSection === 'manual_production'
+  })
+
+  // Query: All Active Variants (to select for manual production)
+  const { data: allVariantsData } = useQuery({
+    queryKey: ['production-active-variants'],
+    queryFn: async () => {
+      const response = await productVariantsService.getAll(null, true)
+      return response.data?.data || []
+    },
+    enabled: activeSection === 'manual_production'
+  })
+
+  // Filter only READY_STOCK variants
+  const readyStockVariants = (allVariantsData || []).filter((v: any) => v.sale_type === 'READY_STOCK')
+
+  // React Hook Form for Production Batch Form
+  const productionForm = useForm<ProductionFormInputs>({
+    resolver: zodResolver(productionBatchSchema),
+    defaultValues: {
+      product_variant_id: undefined,
+      quantity: undefined,
+      notes: ''
+    }
+  })
+
+  // Mutation: Store manual production batch
+  const storeProductionMutation = useMutation({
+    mutationFn: async (data: ProductionFormInputs) => {
+      return productionService.create(data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['production-history'] })
+      queryClient.invalidateQueries({ queryKey: ['supplies-stock-check'] })
+      toast.success('Lote de producción registrado con éxito. Inventario actualizado.')
+      setIsProductionModalOpen(false)
+      productionForm.reset()
+    },
+    onError: (err: any) => {
+      if (err.response?.status === 422) {
+        const errors = err.response?.data?.errors || {}
+        const firstErr = Object.values(errors)[0] as string[]
+        toast.error(firstErr ? firstErr[0] : 'Error al registrar lote de producción.')
+      } else {
+        const msg = err.response?.data?.message || 'Error de comunicación al registrar producción.'
+        toast.error(msg)
+      }
+    }
+  })
 
   // Modal detail state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -258,103 +353,195 @@ export default function Production() {
   const recipeCheckList = selectedOrder ? checkOrderRecipeStock(selectedOrder) : []
   const hasInsufficientIngredients = recipeCheckList.some(r => r.available < r.required)
 
+  const isReposteroOrAdmin = hasPermission('orders.update') || hasPermission('products.create')
+
+  const productionColumns = [
+    {
+      header: 'ID Lote',
+      cell: (item: ProductionBatch) => (
+        <span className="font-mono font-bold text-xs text-text-sub">
+          #{String(item.id).padStart(6, '0')}
+        </span>
+      )
+    },
+    {
+      header: 'Presentación / Producto',
+      cell: (item: ProductionBatch) => (
+        <div className="flex flex-col">
+          <span className="font-heading font-black text-xs text-primary">
+            {item.product_variant?.product?.name || 'Producto Desconocido'}
+          </span>
+          <span className="font-sans text-[10px] text-text-sub font-semibold">
+            {item.product_variant?.name || 'Presentación'}
+          </span>
+        </div>
+      )
+    },
+    {
+      header: 'Cantidad Producida',
+      cell: (item: ProductionBatch) => (
+        <Badge variant="success" className="font-mono font-bold text-xs">
+          +{item.quantity} unidades
+        </Badge>
+      )
+    },
+    {
+      header: 'Notas',
+      cell: (item: ProductionBatch) => (
+        <span className="text-text-sub max-w-xs block truncate text-xs">
+          {item.notes || <span className="italic text-text-sub/45">Sin observaciones</span>}
+        </span>
+      )
+    },
+    {
+      header: 'Fecha Registro',
+      cell: (item: ProductionBatch) => (
+        <span className="font-sans text-xs text-text-main">
+          {new Date(item.production_date).toLocaleDateString('es-CL', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+      )
+    }
+  ]
+
   return (
     <CrudPage
       title="Gestión de Producción y Cocina"
-      subtitle="Supervisa los pedidos confirmados, analiza la disponibilidad de ingredientes en tiempo real y controla la preparación."
-      createPermission="orders.create"
-      onCreateClick={undefined}
-      search={search}
-      onSearchChange={(val) => { setSearch(val); setPage(1); }}
-      searchPlaceholder="Buscar pedido por folio o cliente..."
+      subtitle="Supervisa los pedidos confirmados, analiza los ingredientes en tiempo real o registra lotes de producción manual."
+      createLabel={activeSection === 'manual_production' && isReposteroOrAdmin ? 'Registrar Lote' : undefined}
+      onCreateClick={activeSection === 'manual_production' && isReposteroOrAdmin ? () => {
+        productionForm.reset({
+          product_variant_id: undefined,
+          quantity: undefined,
+          notes: ''
+        })
+        setIsProductionModalOpen(true)
+      } : undefined}
+      search={activeSection === 'orders' ? search : undefined}
+      onSearchChange={activeSection === 'orders' ? (val) => { setSearch(val); setPage(1); } : undefined}
+      searchPlaceholder={activeSection === 'orders' ? "Buscar pedido por folio o cliente..." : undefined}
     >
-      {/* Dashboard cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card 
-          onClick={() => setStatusFilter('Pendiente')}
-          className={cn("cursor-pointer border hover:border-amber-400 transition-all", statusFilter === 'Pendiente' ? "border-amber-400 bg-amber-500/5" : "border-border")}
-        >
-          <CardContent className="p-4 flex flex-col justify-between h-20">
-            <span className="text-[10px] text-text-sub font-bold uppercase tracking-wider block">Pendientes</span>
-            <span className="font-heading font-black text-2xl text-amber-600 dark:text-amber-400">{countPending}</span>
-          </CardContent>
-        </Card>
-
-        <Card 
-          onClick={() => setStatusFilter('Confirmado')}
-          className={cn("cursor-pointer border hover:border-stone-400 transition-all", statusFilter === 'Confirmado' ? "border-stone-400 bg-stone-100/50 dark:bg-stone-900/50" : "border-border")}
-        >
-          <CardContent className="p-4 flex flex-col justify-between h-20">
-            <span className="text-[10px] text-text-sub font-bold uppercase tracking-wider block">Confirmados</span>
-            <span className="font-heading font-black text-2xl text-text-main">{countConfirmed}</span>
-          </CardContent>
-        </Card>
-
-        <Card 
-          onClick={() => setStatusFilter('En preparación')}
-          className={cn("cursor-pointer border hover:border-blue-400 transition-all", statusFilter === 'En preparación' ? "border-blue-400 bg-blue-500/5" : "border-border")}
-        >
-          <CardContent className="p-4 flex flex-col justify-between h-20">
-            <span className="text-[10px] text-text-sub font-bold uppercase tracking-wider block">En Preparación</span>
-            <span className="font-heading font-black text-2xl text-blue-600 dark:text-blue-400">{countInPrep}</span>
-          </CardContent>
-        </Card>
-
-        <Card 
-          onClick={() => setStatusFilter('Listo')}
-          className={cn("cursor-pointer border hover:border-emerald-400 transition-all", statusFilter === 'Listo' ? "border-emerald-400 bg-emerald-500/5" : "border-border")}
-        >
-          <CardContent className="p-4 flex flex-col justify-between h-20">
-            <span className="text-[10px] text-text-sub font-bold uppercase tracking-wider block">Listos</span>
-            <span className="font-heading font-black text-2xl text-emerald-600 dark:text-emerald-400">{countReady}</span>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 mb-4 bg-stone-100/80 dark:bg-stone-900/80 p-1 rounded-lg w-fit border border-border">
-        <button
-          onClick={() => setStatusFilter('')}
-          className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", !statusFilter ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
-        >
-          Todos ({allOrders.length})
-        </button>
-        <button
-          onClick={() => setStatusFilter('Pendiente')}
-          className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", statusFilter === 'Pendiente' ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
-        >
-          Pendientes
-        </button>
-        <button
-          onClick={() => setStatusFilter('Confirmado')}
-          className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", statusFilter === 'Confirmado' ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
-        >
-          Confirmados
-        </button>
-        <button
-          onClick={() => setStatusFilter('En preparación')}
-          className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", statusFilter === 'En preparación' ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
-        >
-          En Preparación
-        </button>
-        <button
-          onClick={() => setStatusFilter('Listo')}
-          className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", statusFilter === 'Listo' ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
-        >
-          Listos
-        </button>
-      </div>
-
-      <CrudTable
-        data={filteredOrders}
-        columns={columns}
-        isLoading={isLoading}
-        currentPage={page}
-        lastPage={1} // filtered locally, paginated batch
-        total={filteredOrders.length}
-        onPageChange={setPage}
-        label="pedidos de cocina"
+      {/* Top section selector tabs */}
+      <Tabs
+        activeTab={activeSection}
+        onTabChange={(tab) => {
+          setActiveSection(tab as 'orders' | 'manual_production')
+          setPage(1)
+        }}
+        tabs={[
+          { id: 'orders', label: 'Pedidos en Cocina' },
+          { id: 'manual_production', label: 'Lotes de Producción (Stock)' }
+        ]}
+        className="mb-6"
       />
+
+      {activeSection === 'orders' ? (
+        <>
+          {/* Dashboard cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <Card 
+              onClick={() => setStatusFilter('Pendiente')}
+              className={cn("cursor-pointer border hover:border-amber-400 transition-all", statusFilter === 'Pendiente' ? "border-amber-400 bg-amber-500/5" : "border-border")}
+            >
+              <CardContent className="p-4 flex flex-col justify-between h-20">
+                <span className="text-[10px] text-text-sub font-bold uppercase tracking-wider block">Pendientes</span>
+                <span className="font-heading font-black text-2xl text-amber-600 dark:text-amber-400">{countPending}</span>
+              </CardContent>
+            </Card>
+
+            <Card 
+              onClick={() => setStatusFilter('Confirmado')}
+              className={cn("cursor-pointer border hover:border-stone-400 transition-all", statusFilter === 'Confirmado' ? "border-stone-400 bg-stone-100/50 dark:bg-stone-900/50" : "border-border")}
+            >
+              <CardContent className="p-4 flex flex-col justify-between h-20">
+                <span className="text-[10px] text-text-sub font-bold uppercase tracking-wider block">Confirmados</span>
+                <span className="font-heading font-black text-2xl text-text-main">{countConfirmed}</span>
+              </CardContent>
+            </Card>
+
+            <Card 
+              onClick={() => setStatusFilter('En preparación')}
+              className={cn("cursor-pointer border hover:border-blue-400 transition-all", statusFilter === 'En preparación' ? "border-blue-400 bg-blue-500/5" : "border-border")}
+            >
+              <CardContent className="p-4 flex flex-col justify-between h-20">
+                <span className="text-[10px] text-text-sub font-bold uppercase tracking-wider block">En Preparación</span>
+                <span className="font-heading font-black text-2xl text-blue-600 dark:text-blue-400">{countInPrep}</span>
+              </CardContent>
+            </Card>
+
+            <Card 
+              onClick={() => setStatusFilter('Listo')}
+              className={cn("cursor-pointer border hover:border-emerald-400 transition-all", statusFilter === 'Listo' ? "border-emerald-400 bg-emerald-500/5" : "border-border")}
+            >
+              <CardContent className="p-4 flex flex-col justify-between h-20">
+                <span className="text-[10px] text-text-sub font-bold uppercase tracking-wider block">Listos</span>
+                <span className="font-heading font-black text-2xl text-emerald-600 dark:text-emerald-400">{countReady}</span>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-2 mb-4 bg-stone-100/80 dark:bg-stone-900/80 p-1 rounded-lg w-fit border border-border">
+            <button
+              onClick={() => setStatusFilter('')}
+              className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", !statusFilter ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
+            >
+              Todos ({allOrders.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('Pendiente')}
+              className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", statusFilter === 'Pendiente' ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
+            >
+              Pendientes
+            </button>
+            <button
+              onClick={() => setStatusFilter('Confirmado')}
+              className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", statusFilter === 'Confirmado' ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
+            >
+              Confirmados
+            </button>
+            <button
+              onClick={() => setStatusFilter('En preparación')}
+              className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", statusFilter === 'En preparación' ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
+            >
+              En Preparación
+            </button>
+            <button
+              onClick={() => setStatusFilter('Listo')}
+              className={cn("px-3 py-1.5 rounded-md text-xs font-semibold transition-all", statusFilter === 'Listo' ? "bg-surface text-primary shadow-sm font-bold" : "text-text-sub hover:text-text-main")}
+            >
+              Listos
+            </button>
+          </div>
+
+          <CrudTable
+            data={filteredOrders}
+            columns={columns}
+            isLoading={isLoading}
+            currentPage={page}
+            lastPage={1} // filtered locally, paginated batch
+            total={filteredOrders.length}
+            onPageChange={setPage}
+            label="pedidos de cocina"
+          />
+        </>
+      ) : (
+        <CrudTable
+          data={productionHistoryData?.data || []}
+          columns={productionColumns}
+          isLoading={isLoadingProduction}
+          currentPage={productionPage}
+          lastPage={productionHistoryData?.meta?.last_page || 1}
+          total={productionHistoryData?.meta?.total || 0}
+          onPageChange={setProductionPage}
+          label="lotes de producción manual"
+        />
+      )}
 
       {/* KITCHEN DETAIL MODAL */}
       {isDetailOpen && selectedOrder && (
@@ -601,6 +788,85 @@ export default function Production() {
               </div>
             </div>
           </div>
+        </CrudModal>
+      )}
+
+      {/* MANUAL PRODUCTION BATCH REGISTRATION MODAL */}
+      {isProductionModalOpen && (
+        <CrudModal
+          isOpen={isProductionModalOpen}
+          onClose={() => setIsProductionModalOpen(false)}
+          title="Registrar Lote de Producción Manual"
+          maxWidthClassName="max-w-md"
+        >
+          <form onSubmit={productionForm.handleSubmit((data) => storeProductionMutation.mutate(data))} className="space-y-5 font-sans">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="batch_variant_id" required>Presentación READY_STOCK</Label>
+                <select
+                  id="batch_variant_id"
+                  className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-xs font-semibold ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  {...productionForm.register('product_variant_id')}
+                >
+                  <option value="">Seleccione una presentación...</option>
+                  {readyStockVariants.map((v: any) => (
+                    <option key={v.id} value={v.id}>
+                      {v.product?.name} - {v.name} (Stock actual: {v.stock})
+                    </option>
+                  ))}
+                </select>
+                {productionForm.formState.errors.product_variant_id && (
+                  <p className="text-red-500 text-[10px] font-bold mt-0.5">{productionForm.formState.errors.product_variant_id.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="batch_quantity" required>Cantidad Producida (Unidades)</Label>
+                <Input
+                  id="batch_quantity"
+                  type="number"
+                  placeholder="Ej. 10, 25, 50"
+                  error={productionForm.formState.errors.quantity?.message}
+                  {...productionForm.register('quantity')}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="batch_notes">Notas / Observaciones del Lote (Opcional)</Label>
+                <Textarea
+                  id="batch_notes"
+                  placeholder="Indique detalles como lote de ingredientes, turno, etc."
+                  error={productionForm.formState.errors.notes?.message}
+                  {...productionForm.register('notes')}
+                />
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200/60 p-3.5 rounded-lg flex items-start gap-2.5 text-[10px] text-amber-800 leading-normal">
+                <FiAlertTriangle className="text-amber-500 text-xs shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block font-bold">Consumo de Insumos Automático:</strong>
+                  Al guardar, el sistema descontará la cantidad proporcional de insumos/materias primas requeridas de la receta asociada e incrementará el stock físico de la variante seleccionada.
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-border/60 pt-4 mt-6">
+              <Button
+                type="button"
+                variant="neutral"
+                onClick={() => setIsProductionModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                isLoading={storeProductionMutation.isPending}
+              >
+                Registrar Producción
+              </Button>
+            </div>
+          </form>
         </CrudModal>
       )}
     </CrudPage>

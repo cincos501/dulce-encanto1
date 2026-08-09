@@ -23,7 +23,7 @@ class AdminUserSeeder extends Seeder
         if ($admin) {
             $admin->update([
                 'full_name' => 'Administrador',
-                'phone' => '+56912345678',
+                'phone' => '59170012345',
                 'is_active' => true,
             ]);
         } else {
@@ -31,7 +31,7 @@ class AdminUserSeeder extends Seeder
                 'full_name' => 'Administrador',
                 'email' => 'admin@dulceencanto.com',
                 'password' => Hash::make('admin123456'),
-                'phone' => '+56912345678',
+                'phone' => '59170012345',
                 'is_active' => true,
             ]);
         }

@@ -12,6 +12,7 @@ import { useAuthorization } from '@/shared/hooks/useAuthorization'
 import { FiEye, FiTrash2, FiPlus, FiCheck } from 'react-icons/fi'
 import { toast } from 'sonner'
 import { cn } from '@/shared/utils/cn'
+import { normalizePhone } from '@/shared/utils/phone'
 
 export default function Orders() {
   const queryClient = useQueryClient()
@@ -231,7 +232,7 @@ export default function Orders() {
     try {
       const payload = {
         customer_name,
-        customer_phone,
+        customer_phone: normalizePhone(customer_phone),
         delivery_type: deliveryType,
         address: deliveryType === 'Delivery' ? address : null,
         observations: observations || null,

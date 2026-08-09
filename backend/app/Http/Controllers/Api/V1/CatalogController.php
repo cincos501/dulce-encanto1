@@ -106,6 +106,14 @@ class CatalogController extends Controller
                 'has_promotion' => $hasPromotion,
                 'promo_discount_text' => $discountText,
                 'has_multiple_variants' => $product->variants->count() > 1,
+                'variants' => $product->variants->map(function ($variant) {
+                    return [
+                        'id' => $variant->id,
+                        'name' => $variant->name,
+                        'price' => (float) $variant->price,
+                        'sale_type' => $variant->sale_type,
+                    ];
+                })->all(),
                 'image' => $primaryImage,
             ];
         });
@@ -199,6 +207,8 @@ class CatalogController extends Controller
                         'price' => (float) $variant->price,
                         'promo_price' => $promoPrice,
                         'serves_people' => $variant->serves_people !== null ? (int) $variant->serves_people : null,
+                        'sale_type' => $variant->sale_type,
+                        'stock' => (int) $variant->stock,
                         'extras' => $variant->extras->map(static function ($extra) {
                             return [
                                 'id' => $extra->id,

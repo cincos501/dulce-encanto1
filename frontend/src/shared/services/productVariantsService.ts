@@ -7,6 +7,8 @@ export interface ProductVariantInput {
   price: number;
   serves_people?: number;
   is_active?: boolean;
+  sale_type?: string;
+  stock?: number;
   extras?: { extra_id: number; price: number }[];
 }
 

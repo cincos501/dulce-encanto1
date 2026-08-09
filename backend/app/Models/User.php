@@ -42,4 +42,14 @@ class User extends Authenticatable
         $url = config('app.frontend_url', 'http://localhost:5173') . '/reset-password?token=' . $token . '&email=' . urlencode($this->email);
         $this->notify(new \App\Notifications\ResetPasswordNotification($url));
     }
+
+    /**
+     * Mutator to automatically normalize phone numbers.
+     */
+    protected function phone(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            set: fn (?string $value) => $value !== null ? \App\Support\PhoneHelper::normalize($value) : null
+        );
+    }
 }

@@ -73,38 +73,66 @@ class OrderService
 
         // Only trigger deduction logic when transitioning TO 'En preparación' from another status
         if ($newStatus === 'En preparación' && $oldStatus !== 'En preparación') {
-            // 1. Calculate required quantities of supplies
             $requiredSupplies = []; // [supply_id => ['required' => float, 'supply' => Supply, 'unit' => string]]
-
+            $requiredVariantStocks = []; // [variant_id => ['required' => int, 'variant' => ProductVariant]]
+            
             foreach ($order->items as $item) {
                 $variant = $item->productVariant;
                 if ($variant === null) {
                     continue;
                 }
 
-                // If variant has no recipes, skip it
-                foreach ($variant->recipes as $recipeItem) {
-                    $supply = $recipeItem->supply;
-                    if ($supply === null) {
-                        continue;
-                    }
-
-                    $supplyId = $supply->id;
-                    $neededQty = (float) $recipeItem->quantity * (int) $item->quantity;
-
-                    if (isset($requiredSupplies[$supplyId])) {
-                        $requiredSupplies[$supplyId]['required'] += $neededQty;
+                if ($variant->sale_type === 'READY_STOCK') {
+                    $variantId = $variant->id;
+                    $qty = (int) $item->quantity;
+                    if (isset($requiredVariantStocks[$variantId])) {
+                        $requiredVariantStocks[$variantId]['required'] += $qty;
                     } else {
-                        $requiredSupplies[$supplyId] = [
-                          'required' => $neededQty,
-                          'supply' => $supply,
-                          'unit' => $recipeItem->unit,
+                        $requiredVariantStocks[$variantId] = [
+                            'required' => $qty,
+                            'variant' => $variant
                         ];
+                    }
+                } else {
+                    // MADE_TO_ORDER
+                    foreach ($variant->recipes as $recipeItem) {
+                        $supply = $recipeItem->supply;
+                        if ($supply === null) {
+                            continue;
+                        }
+
+                        $supplyId = $supply->id;
+                        $neededQty = (float) $recipeItem->quantity * (int) $item->quantity;
+
+                        if (isset($requiredSupplies[$supplyId])) {
+                            $requiredSupplies[$supplyId]['required'] += $neededQty;
+                        } else {
+                            $requiredSupplies[$supplyId] = [
+                              'required' => $neededQty,
+                              'supply' => $supply,
+                              'unit' => $recipeItem->unit,
+                            ];
+                        }
                     }
                 }
             }
 
-            // 2. Validate stock availability
+            $validationErrors = [];
+
+            // Validate variant stock availability for READY_STOCK
+            foreach ($requiredVariantStocks as $variantId => $data) {
+                $variant = $data['variant'];
+                $required = $data['required'];
+                $available = (int) $variant->stock;
+
+                if ($available < $required) {
+                    $variantName = $variant->name;
+                    $productName = $variant->product?->name ?? 'Producto';
+                    $validationErrors[] = "Stock de presentación insuficiente para '{$productName} ({$variantName})'. Disponible: {$available}, Requerido: {$required}.";
+                }
+            }
+
+            // Validate supply stock availability for MADE_TO_ORDER
             foreach ($requiredSupplies as $supplyId => $data) {
                 $supply = $data['supply'];
                 $required = $data['required'];
@@ -113,20 +141,40 @@ class OrderService
                 if ($available < $required) {
                     $supplyName = $supply->name;
                     $unit = $data['unit'];
-                    
-                    // Throw validation exception to return 422 HTTP response mapping to the status field
-                    throw ValidationException::withMessages([
-                        'status' => ["Stock insuficiente para el insumo {$supplyName}. Disponible: " . number_format($available, 4) . " {$unit}, Requerido: " . number_format($required, 4) . " {$unit}."]
-                    ]);
+                    $validationErrors[] = "Stock insuficiente para el insumo {$supplyName}. Disponible: " . number_format($available, 4) . " {$unit}, Requerido: " . number_format($required, 4) . " {$unit}.";
                 }
             }
 
-            // 3. Perform deductions and update status in database transaction
-            DB::transaction(function () use ($order, $newStatus, $requiredSupplies): void {
+            if (!empty($validationErrors)) {
+                throw ValidationException::withMessages([
+                    'status' => $validationErrors
+                ]);
+            }
+
+            // Perform deductions and update status in database transaction
+            DB::transaction(function () use ($order, $newStatus, $requiredSupplies, $requiredVariantStocks): void {
+                // Deduct READY_STOCK variant stocks
+                foreach ($requiredVariantStocks as $variantId => $data) {
+                    $variant = $data['variant'];
+                    $variant->stock -= $data['required'];
+                    $variant->save();
+
+                    // Check if stock becomes 0 to fire READY_STOCK out of stock event
+                    if ($variant->stock <= 0) {
+                        event(new \App\Events\ReadyStockOutOfStock($variant));
+                    }
+                }
+
+                // Deduct MADE_TO_ORDER supplies
                 foreach ($requiredSupplies as $supplyId => $data) {
                     $supply = $data['supply'];
                     $supply->stock -= $data['required'];
                     $supply->save();
+
+                    // Check if supply stock drops below minimum stock to fire alert event
+                    if ($supply->stock <= $supply->minimum_stock) {
+                        event(new \App\Events\SupplyStockLow($supply));
+                    }
                 }
 
                 $this->orderRepository->update($order, ['status' => $newStatus]);
@@ -146,7 +194,8 @@ class OrderService
     {
         return DB::transaction(function () use ($dto): Order {
             // 1. Create or retrieve Customer based on phone
-            $customer = Customer::firstOrNew(['phone' => $dto->customerPhone]);
+            $normalizedPhone = \App\Support\PhoneHelper::normalize($dto->customerPhone);
+            $customer = Customer::firstOrNew(['phone' => $normalizedPhone]);
             $customer->full_name = $dto->customerName;
             
             // Serialize delivery details into email column
@@ -160,6 +209,8 @@ class OrderService
             // 2. Compute order items prices and totals
             $itemsData = [];
             $orderTotal = 0.00;
+            $requiredSupplies = [];
+            $requiredVariantStocks = [];
 
             foreach ($dto->items as $itemDto) {
                 $variant = ProductVariant::find($itemDto->productVariantId);
@@ -173,6 +224,41 @@ class OrderService
                     throw ValidationException::withMessages([
                         'items' => ["La presentación '{$variant->name}' de '" . ($variant->product?->name ?? '') . "' no está disponible porque el producto o su categoría se encuentra inactivo."]
                     ]);
+                }
+
+                $qty = (int) $itemDto->quantity;
+
+                if ($variant->sale_type === 'READY_STOCK') {
+                    $variantId = $variant->id;
+                    if (isset($requiredVariantStocks[$variantId])) {
+                        $requiredVariantStocks[$variantId]['required'] += $qty;
+                    } else {
+                        $requiredVariantStocks[$variantId] = [
+                            'required' => $qty,
+                            'variant' => $variant
+                        ];
+                    }
+                } else {
+                    // MADE_TO_ORDER
+                    foreach ($variant->recipes as $recipeItem) {
+                        $supply = $recipeItem->supply;
+                        if ($supply === null) {
+                            continue;
+                        }
+
+                        $supplyId = $supply->id;
+                        $neededQty = (float) $recipeItem->quantity * $qty;
+
+                        if (isset($requiredSupplies[$supplyId])) {
+                            $requiredSupplies[$supplyId]['required'] += $neededQty;
+                        } else {
+                            $requiredSupplies[$supplyId] = [
+                                'required' => $neededQty,
+                                'supply' => $supply,
+                                'unit' => $recipeItem->unit,
+                            ];
+                        }
+                    }
                 }
 
                 // Calculate variant price, considering active promotions
@@ -202,8 +288,8 @@ class OrderService
                     }
                 }
 
-                $itemUnitPrice = $activePrice + $extrasPriceSum;
-                $itemSubtotal = $itemUnitPrice * $itemDto->quantity;
+                $itemUnitPrice = round($activePrice + $extrasPriceSum, 2);
+                $itemSubtotal = round($itemUnitPrice * $itemDto->quantity, 2);
                 $orderTotal += $itemSubtotal;
 
                 $itemsData[] = [
@@ -213,6 +299,43 @@ class OrderService
                     'extras' => $extrasModels
                 ];
             }
+
+            // Perform stock validations
+            $validationErrors = [];
+
+            // Validate variant stock availability for READY_STOCK
+            foreach ($requiredVariantStocks as $variantId => $data) {
+                $v = $data['variant'];
+                $required = $data['required'];
+                $available = (int) $v->stock;
+
+                if ($available < $required) {
+                    $variantName = $v->name;
+                    $productName = $v->product?->name ?? 'Producto';
+                    $validationErrors[] = "Stock insuficiente para '{$productName} ({$variantName})'. Disponible: {$available}, Requerido: {$required}.";
+                }
+            }
+
+            // Validate supply stock availability for MADE_TO_ORDER
+            foreach ($requiredSupplies as $supplyId => $data) {
+                $supply = $data['supply'];
+                $required = $data['required'];
+                $available = (float) $supply->stock;
+
+                if ($available < $required) {
+                    $supplyName = $supply->name;
+                    $unit = $data['unit'];
+                    $validationErrors[] = "Stock insuficiente de insumos para fabricar este pedido. Insumo '{$supplyName}' - Disponible: " . number_format($available, 2) . " {$unit}, Requerido: " . number_format($required, 2) . " {$unit}.";
+                }
+            }
+
+            if (!empty($validationErrors)) {
+                throw ValidationException::withMessages([
+                    'stock' => $validationErrors
+                ]);
+            }
+
+            $orderTotal = round($orderTotal, 2);
 
             // 3. Create the Order
             $order = Order::create([

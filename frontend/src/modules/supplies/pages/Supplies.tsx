@@ -340,7 +340,7 @@ export default function Supplies() {
         return (
           <div className="flex items-center gap-1.5">
             <span className={cn("font-sans font-bold text-sm", isLowStock ? "text-red-650 dark:text-red-400" : "text-text-main")}>
-              {Number(item.stock).toFixed(4)}
+              {Number(item.stock).toFixed(2)}
             </span>
             {isLowStock && (
               <span 
@@ -354,7 +354,7 @@ export default function Supplies() {
     },
     {
       header: 'Stock Mínimo',
-      cell: (item: Supply) => <span className="font-sans text-xs font-semibold text-text-sub">{Number(item.minimum_stock).toFixed(4)}</span>
+      cell: (item: Supply) => <span className="font-sans text-xs font-semibold text-text-sub">{Number(item.minimum_stock).toFixed(2)}</span>
     },
     {
       header: 'Costo Promedio',
@@ -450,7 +450,7 @@ export default function Supplies() {
       label: 'Stock Inicial',
       type: 'number' as const,
       placeholder: '0.00',
-      step: '0.0001',
+      step: '0.01',
       required: true
     },
     {
@@ -458,7 +458,7 @@ export default function Supplies() {
       label: 'Stock Mínimo de Alerta',
       type: 'number' as const,
       placeholder: '0.00',
-      step: '0.0001',
+      step: '0.01',
       required: true
     },
     {
@@ -676,7 +676,7 @@ export default function Supplies() {
                           <div className="relative">
                             <Input
                               type="number"
-                              step="0.0001"
+                              step="0.01"
                               placeholder="0.00"
                               value={item.quantity || ''}
                               onChange={(e) => handlePurchaseQuantityChange(index, Number(e.target.value))}

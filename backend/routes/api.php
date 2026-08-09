@@ -119,6 +119,12 @@ Route::prefix('v1')->group(function () {
             Route::put('/{product_variant}', [RecipeController::class, 'update'])->middleware('permission:recipes.update')->name('recipes.update');
         });
 
+        // Manual Production endpoints
+        Route::prefix('production')->group(function () {
+            Route::get('/', [ProductionController::class, 'index'])->middleware('permission:recipes.view')->name('production.index');
+            Route::post('/', [ProductionController::class, 'store'])->middleware('permission:recipes.create')->name('production.store');
+        });
+
         // Orders CRUD / Production endpoints
         Route::prefix('orders')->group(function () {
             Route::get('/', [OrderController::class, 'index'])->middleware('permission:orders.view')->name('orders.index');
@@ -154,3 +160,11 @@ Route::post('/webhooks/chatwoot', [\App\Http\Controllers\Api\Webhooks\ChatwootWe
 // Baneco Webhook endpoint (public)
 Route::post('/webhooks/baneco/payment', [\App\Baneco\Http\Controllers\BanecoWebhookController::class, 'notifyPaymentQR'])
     ->name('webhooks.baneco.payment');
+
+// Public QR Payment details endpoint
+Route::get('/payments/qr/{qrId}', [\App\Http\Controllers\Api\V1\PublicPaymentController::class, 'show'])
+    ->name('payments.qr.show');
+
+// Public Order History endpoint
+Route::get('/orders/history/{phoneToken}', [\App\Http\Controllers\Api\V1\PublicOrderHistoryController::class, 'show'])
+    ->name('orders.history.show');

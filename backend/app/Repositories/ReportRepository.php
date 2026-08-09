@@ -22,36 +22,40 @@ class ReportRepository implements ReportRepositoryInterface
         $start = $dto->startDate . ' 00:00:00';
         $end = $dto->endDate . ' 23:59:59';
 
-        $totalSales = (float) Order::where('status', '!=', 'Cancelado')
+        $totalSales = (float) DB::table('vw_orders_dashboard_summary')
+            ->where('status', '!=', 'Cancelado')
             ->whereBetween('created_at', [$start, $end])
             ->sum('total');
 
-        $ordersCount = Order::whereBetween('created_at', [$start, $end])
+        $ordersCount = DB::table('vw_orders_dashboard_summary')
+            ->whereBetween('created_at', [$start, $end])
             ->count();
 
-        $productsSold = (int) OrderItem::whereHas('order', function ($query) use ($start, $end) {
-            $query->where('status', '!=', 'Cancelado')
-                  ->whereBetween('created_at', [$start, $end]);
-        })->sum('quantity');
+        $productsSold = (int) DB::table('vw_orders_dashboard_summary')
+            ->where('status', '!=', 'Cancelado')
+            ->whereBetween('created_at', [$start, $end])
+            ->sum('products_count');
 
         $totalCustomers = Customer::count();
 
-        $pendingCount = Order::where('status', 'Pendiente')
+        $pendingCount = DB::table('vw_orders_dashboard_summary')
+            ->where('status', 'Pendiente')
             ->whereBetween('created_at', [$start, $end])
             ->count();
 
-        $deliveredCount = Order::where('status', 'Entregado')
+        $deliveredCount = DB::table('vw_orders_dashboard_summary')
+            ->where('status', 'Entregado')
             ->whereBetween('created_at', [$start, $end])
             ->count();
 
-        $cancelledCount = Order::where('status', 'Cancelado')
+        $cancelledCount = DB::table('vw_orders_dashboard_summary')
+            ->where('status', 'Cancelado')
             ->whereBetween('created_at', [$start, $end])
             ->count();
 
-        $criticalStockCount = Supply::where(static function ($query) {
-            $query->whereColumn('stock', '<=', DB::raw('minimum_stock * 0.25'))
-                  ->orWhere('stock', '<=', 0);
-        })->count();
+        $criticalStockCount = DB::table('vw_supplies_status')
+            ->where('status', 'Stock crítico')
+            ->count();
 
         return [
             'period_sales' => $totalSales,
@@ -73,14 +77,17 @@ class ReportRepository implements ReportRepositoryInterface
         $start = $dto->startDate . ' 00:00:00';
         $end = $dto->endDate . ' 23:59:59';
 
-        $totalRevenue = (float) Order::where('status', '!=', 'Cancelado')
+        $totalRevenue = (float) DB::table('vw_orders_dashboard_summary')
+            ->where('status', '!=', 'Cancelado')
             ->whereBetween('created_at', [$start, $end])
             ->sum('total');
 
-        $ordersCount = Order::whereBetween('created_at', [$start, $end])
+        $ordersCount = DB::table('vw_orders_dashboard_summary')
+            ->whereBetween('created_at', [$start, $end])
             ->count();
 
-        $deliveredOrdersCount = Order::where('status', 'Entregado')
+        $deliveredOrdersCount = DB::table('vw_orders_dashboard_summary')
+            ->where('status', 'Entregado')
             ->whereBetween('created_at', [$start, $end])
             ->count();
 
@@ -89,7 +96,8 @@ class ReportRepository implements ReportRepositoryInterface
         $statuses = ['Pendiente', 'Confirmado', 'En preparación', 'Listo', 'Entregado', 'Cancelado'];
         $statusCounts = [];
         foreach ($statuses as $status) {
-            $statusCounts[strtolower(str_replace(' ', '_', $status))] = Order::where('status', $status)
+            $statusCounts[strtolower(str_replace(' ', '_', $status))] = DB::table('vw_orders_dashboard_summary')
+                ->where('status', $status)
                 ->whereBetween('created_at', [$start, $end])
                 ->count();
         }
@@ -134,18 +142,16 @@ class ReportRepository implements ReportRepositoryInterface
         $start = $dto->startDate . ' 00:00:00';
         $end = $dto->endDate . ' 23:59:59';
 
-        return OrderItem::select(
-                'products.name as product_name',
-                'product_variants.name as variant_name',
-                DB::raw('SUM(order_items.quantity) as quantity_sold'),
-                DB::raw('SUM(order_items.quantity * order_items.price) as total_generated')
+        return DB::table('vw_most_sold_products')
+            ->select(
+                'product_name',
+                'variant_name',
+                DB::raw('SUM(quantity_sold) as quantity_sold'),
+                DB::raw('SUM(total_generated) as total_generated')
             )
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('product_variants', 'order_items.product_variant_id', '=', 'product_variants.id')
-            ->join('products', 'product_variants.product_id', '=', 'products.id')
-            ->where('orders.status', '!=', 'Cancelado')
-            ->whereBetween('orders.created_at', [$start, $end])
-            ->groupBy('products.name', 'product_variants.name')
+            ->where('order_status', '!=', 'Cancelado')
+            ->whereBetween('order_created_at', [$start, $end])
+            ->groupBy('product_name', 'variant_name')
             ->orderBy('quantity_sold', 'desc')
             ->get();
     }
@@ -155,24 +161,10 @@ class ReportRepository implements ReportRepositoryInterface
      */
     public function getSuppliesReport(): Collection
     {
-        return Supply::select('name', 'stock', 'unit', 'minimum_stock')
+        return DB::table('vw_supplies_status')
+            ->select('name', 'stock', 'unit', 'minimum_stock', 'status')
             ->orderBy('name')
-            ->get()
-            ->map(static function ($supply) {
-                $stock = (float) $supply->stock;
-                $minStock = (float) $supply->minimum_stock;
-
-                if ($stock <= $minStock * 0.25 || $stock <= 0) {
-                    $status = 'Stock crítico';
-                } elseif ($stock <= $minStock) {
-                    $status = 'Stock bajo';
-                } else {
-                    $status = 'Stock suficiente';
-                }
-
-                $supply->setAttribute('status', $status);
-                return $supply;
-            });
+            ->get();
     }
 
     /**
@@ -186,7 +178,8 @@ class ReportRepository implements ReportRepositoryInterface
         $statuses = ['Pendiente', 'Confirmado', 'En preparación', 'Listo', 'Entregado', 'Cancelado'];
         $statusCounts = [];
         foreach ($statuses as $status) {
-            $statusCounts[strtolower(str_replace(' ', '_', $status))] = Order::where('status', $status)
+            $statusCounts[strtolower(str_replace(' ', '_', $status))] = DB::table('vw_orders_dashboard_summary')
+                ->where('status', $status)
                 ->whereBetween('created_at', [$start, $end])
                 ->count();
         }

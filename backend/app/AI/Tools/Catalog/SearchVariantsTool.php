@@ -67,7 +67,10 @@ class SearchVariantsTool implements ToolInterface
         foreach ($paginator->items() as $variant) {
             $productName = $variant->product ? $variant->product->name : 'Producto';
             $portions = $variant->serves_people ? " (sirve para {$variant->serves_people} personas)" : '';
-            $result .= "- [ID Variante: {$variant->id}] {$productName} - Presentación: {$variant->name} | Precio: Bs. {$variant->price}{$portions} | SKU: {$variant->sku}\n";
+            $availability = $variant->sale_type === 'READY_STOCK' 
+                ? "Disponible para entrega inmediata (Stock: {$variant->stock} unidades)" 
+                : "Fabricado bajo pedido (Requiere mínimo 24 horas de anticipación)";
+            $result .= "- [ID Variante: {$variant->id}] {$productName} - Presentación: {$variant->name} | Precio: Bs. {$variant->price}{$portions} | SKU: {$variant->sku} | Disponibilidad: {$availability}\n";
         }
 
         return $result;

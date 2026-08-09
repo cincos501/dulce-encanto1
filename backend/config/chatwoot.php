@@ -27,4 +27,8 @@ return [
     'meta_access_token' => env('META_ACCESS_TOKEN'),
 
     'send_responses' => env('CHATWOOT_SEND_RESPONSES', true),
+
+    'admin_phone' => env('CHATWOOT_ADMIN_PHONE', '+56912345678'),
+
+    'repostero_phone' => env('CHATWOOT_REPOSTERO_PHONE', '+56900000000'),
 ];

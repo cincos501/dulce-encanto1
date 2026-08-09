@@ -15,6 +15,10 @@ class GenerateQRResponse
 
     public static function fromArray(array $data): self
     {
+        if (isset($data['response']) && is_array($data['response'])) {
+            $data = $data['response'];
+        }
+
         return new self(
             responseCode: (int) ($data['responseCode'] ?? -1),
             message: $data['message'] ?? null,

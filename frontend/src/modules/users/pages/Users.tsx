@@ -17,6 +17,7 @@ import { User } from '@/shared/types'
 import { FiEdit2, FiKey } from 'react-icons/fi'
 import { cn } from '@/shared/utils/cn'
 import { handleApiError } from '@/shared/utils/formErrors'
+import { normalizePhone } from '@/shared/utils/phone'
 
 const ROLES_LIST = [
   'Administrador',
@@ -151,7 +152,7 @@ export default function Users() {
       const payload: UserInput = {
         full_name: data.full_name,
         email: data.email,
-        phone: data.phone || null,
+        phone: data.phone ? normalizePhone(data.phone) : null,
         role: data.role,
         is_active: data.is_active,
         ...(data.password ? { password: data.password } : {})

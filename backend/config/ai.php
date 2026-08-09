@@ -22,5 +22,12 @@ return [
             'temperature' => (float) env('GROQ_TEMPERATURE', 0.0),
             'top_p' => (float) env('GROQ_TOP_P', 0.0),
         ],
+        'openai' => [
+            'key' => env('OPENAI_API_KEY'),
+            'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+            'url' => env('OPENAI_API_URL', 'https://api.openai.com/v1/chat/completions'),
+            'temperature' => (float) env('OPENAI_TEMPERATURE', 0.0),
+            'top_p' => (float) env('OPENAI_TOP_P', 0.0),
+        ],
     ],
 ];

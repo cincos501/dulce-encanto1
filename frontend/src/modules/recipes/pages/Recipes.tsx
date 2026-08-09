@@ -363,8 +363,8 @@ export default function Recipes() {
                         <div className="relative">
                           <Input
                             type="number"
-                            step="0.0001"
-                            placeholder="0.0000"
+                            step="0.01"
+                            placeholder="0.00"
                             value={item.quantity || ''}
                             onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
                             error={!!backendErrors[qtyErrKey]}

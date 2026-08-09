@@ -16,9 +16,13 @@ class OrderResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $pendingPayment = $this->payments()->where('status', 'Pendiente')->first();
+
         return [
             'id' => $this->id,
             'status' => $this->status,
+            'production_stage' => $this->production_stage ?? 'Programado',
+            'qr_id' => $pendingPayment?->transaction_code,
             'total' => (float) $this->total,
             'delivery_date' => $this->delivery_date?->toIso8601String(),
             'customer' => [

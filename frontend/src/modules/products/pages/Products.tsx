@@ -59,8 +59,13 @@ const variantSchema = z.object({
     z.number({ invalid_type_error: 'El precio debe ser un número.' }).min(0.01, 'El precio debe ser mayor a 0.')
   ),
   serves_people: z.preprocess(
-    (val) => (val === '' || val === null ? undefined : Number(val)),
+    (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
     z.number({ invalid_type_error: 'La cantidad de personas debe ser un número.' }).int().min(1, 'Debe ser para al menos 1 persona.').optional()
+  ),
+  sale_type: z.string().default('MADE_TO_ORDER'),
+  stock: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? 0 : Number(val)),
+    z.number().int().min(0, 'El stock no puede ser menor a 0.').default(0)
   ),
   is_active: z.boolean().default(true)
 })
@@ -113,6 +118,7 @@ export default function Products() {
   })
 
   const productName = productForm.watch('name')
+  const selectedSaleType = variantForm.watch('sale_type')
 
   // Real-time product name uniqueness validation
   useEffect(() => {
@@ -261,6 +267,8 @@ export default function Products() {
         price: data.price,
         serves_people: data.serves_people,
         is_active: data.is_active,
+        sale_type: (data as any).sale_type,
+        stock: (data as any).stock,
         extras: selectedExtrasWithPrices
       }
       if (editingVariant) {
@@ -341,7 +349,9 @@ export default function Products() {
       name: '',
       price: 0,
       serves_people: 1,
-      is_active: true
+      is_active: true,
+      sale_type: 'MADE_TO_ORDER',
+      stock: 0
     })
     setIsVariantModalOpen(true)
   }
@@ -365,7 +375,9 @@ export default function Products() {
       name: variant.name,
       price: Number(variant.price),
       serves_people: variant.serves_people ? Number(variant.serves_people) : 1,
-      is_active: variant.is_active
+      is_active: variant.is_active,
+      sale_type: variant.sale_type || 'MADE_TO_ORDER',
+      stock: variant.stock !== undefined ? Number(variant.stock) : 0
     })
     setIsVariantModalOpen(true)
   }
@@ -637,6 +649,7 @@ export default function Products() {
                           <th className="px-4 py-3">Tamaño / Porción</th>
                           <th className="px-4 py-3">Precio</th>
                           <th className="px-4 py-3">Personas Aprox.</th>
+                          <th className="px-4 py-3">Modalidad / Stock</th>
                           <th className="px-4 py-3">Extras Relacionados</th>
                           <th className="px-4 py-3 text-center">Estado</th>
                           <th className="px-4 py-3 text-right">Acciones</th>
@@ -645,7 +658,7 @@ export default function Products() {
                       <tbody className="divide-y divide-border/60">
                         {variantsList.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center italic text-text-sub/50 font-semibold bg-surface">
+                            <td colSpan={7} className="px-4 py-8 text-center italic text-text-sub/50 font-semibold bg-surface">
                               No hay presentaciones definidas para este producto. Agrega una para comenzar.
                             </td>
                           </tr>
@@ -656,6 +669,11 @@ export default function Products() {
                               <td className="px-4 py-3.5 font-semibold text-primary font-mono">Bs. {Number(variant.price).toFixed(2)}</td>
                               <td className="px-4 py-3.5 text-text-main font-semibold">
                                 {variant.serves_people !== null && variant.serves_people !== undefined ? `${variant.serves_people} pers.` : <span className="italic text-text-sub/40">No especificado</span>}
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <Badge variant={variant.sale_type === 'READY_STOCK' ? 'success' : 'neutral'} className="text-[8px] uppercase font-bold tracking-wider">
+                                  {variant.sale_type === 'READY_STOCK' ? `Entrega Inmediata (${variant.stock})` : 'Bajo Pedido'}
+                                </Badge>
                               </td>
                               <td className="px-4 py-3.5 text-text-sub">
                                 {variant.extras && variant.extras.length > 0 ? (
@@ -724,8 +742,8 @@ export default function Products() {
       {/* DYNAMIC PRESENTATION / VARIANT DIALOG */}
       {isVariantModalOpen && (
         <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="bg-surface w-full max-w-2xl rounded-lg border border-border shadow-2xl p-6 sm:p-7 space-y-6 relative overflow-hidden animate-scale-up my-8">
-            <div className="flex items-center justify-between border-b border-border/60 pb-4">
+          <div className="bg-surface w-full max-w-2xl rounded-lg border border-border shadow-2xl p-6 sm:p-7 flex flex-col max-h-[90vh] relative overflow-hidden animate-scale-up my-8">
+            <div className="flex items-center justify-between border-b border-border/60 pb-4 shrink-0">
               <Typography variant="h3">
                 {editingVariant ? `Editar Presentación: ${editingVariant.name}` : 'Nueva Presentación'}
               </Typography>
@@ -738,7 +756,7 @@ export default function Products() {
               </button>
             </div>
 
-            <form onSubmit={variantForm.handleSubmit((data) => saveVariantMutation.mutate(data))} className="space-y-6">
+            <form onSubmit={variantForm.handleSubmit((data) => saveVariantMutation.mutate(data))} className="space-y-6 overflow-y-auto pr-1 flex-1 min-h-0">
               {/* BLOCK 1: INFORMACIÓN GENERAL & PRECIO */}
               <div className="bg-surface border border-border/80 p-5 rounded-lg space-y-5">
                 <Typography variant="label" className="text-xs uppercase tracking-wider font-bold">Información General</Typography>
@@ -774,6 +792,32 @@ export default function Products() {
                         {...variantForm.register('serves_people')}
                       />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="v_sale_type" required>Modalidad Comercial</Label>
+                      <select
+                        id="v_sale_type"
+                        className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-xs font-semibold ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        {...variantForm.register('sale_type')}
+                      >
+                        <option value="MADE_TO_ORDER">MADE_TO_ORDER (Bajo Pedido)</option>
+                        <option value="READY_STOCK">READY_STOCK (Disponibilidad Inmediata)</option>
+                      </select>
+                    </div>
+                    {selectedSaleType === 'READY_STOCK' && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="v_stock" required>Stock Físico Disponible</Label>
+                        <Input
+                          id="v_stock"
+                          type="number"
+                          placeholder="0"
+                          error={variantForm.formState.errors.stock?.message}
+                          {...variantForm.register('stock')}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 

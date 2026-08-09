@@ -21,11 +21,22 @@ class AIConversationService
      *
      * @param array<array{role: string, content: string}> $history
      * @param array|null $tools
+     * @param string|null $intent
+     * @param array|null $toolNames
      * @return AIResponseDTO
      */
-    public function generateReply(array $history, ?array $tools = null): AIResponseDTO
+    public function generateReply(array $history, ?array $tools = null, ?string $intent = null, ?array $toolNames = null): AIResponseDTO
     {
         $systemPrompt = DulceEncantoPrompt::getSystemPrompt();
+
+        // Inject dynamic real-time date and time context
+        $currentDate = now()->format('Y-m-d');
+        $currentDateTime = now()->format('Y-m-d H:i');
+        $systemPrompt .= "\n\nCONTEXTO DE TIEMPO REAL:\n";
+        $systemPrompt .= "- Fecha actual: {$currentDate}\n";
+        $systemPrompt .= "- Fecha y hora actual completa: {$currentDateTime}\n";
+        $systemPrompt .= "- Año actual: " . now()->year . "\n";
+        $systemPrompt .= "Usa siempre este año actual al interpretar fechas del usuario (ej: '30 de julio' se interpreta como '30 de julio de " . now()->year . "').\n";
 
         // 1. Build initial message list for LLM (including system prompt)
         $messages = [];
@@ -34,7 +45,7 @@ class AIConversationService
             'content' => $systemPrompt,
         ];
 
-        // 2. Safe history pruning (keep last 10 messages max by default, starting on a 'user' message)
+        // 2. Safe history pruning (keep last 10 messages max, starting on a human 'user' message)
         $recentHistory = self::pruneHistory($history, 10);
 
         // 3. Token Estimation & Safety Control Loop
@@ -53,13 +64,17 @@ class AIConversationService
 
             $totalEstimatedTokens = $promptTokens + $toolsTokens + $historyTokens;
 
-            // If under 3000 tokens limit, we are good to go
-            if ($totalEstimatedTokens <= 3000) {
+            // Safe token limit ceiling for free tier models (4500 tokens)
+            if ($totalEstimatedTokens <= 4500) {
                 break;
             }
 
-            // Otherwise, recursively prune oldest messages
-            $recentHistory = self::pruneHistory(array_slice($recentHistory, 1), count($recentHistory) - 1);
+            // Attempt to prune older messages, but ensure we never prune away all human user messages
+            $nextHistory = self::pruneHistory(array_slice($recentHistory, 1), count($recentHistory) - 1);
+            if (empty($nextHistory)) {
+                break; // Stop pruning to protect the active user prompt turn
+            }
+            $recentHistory = $nextHistory;
         }
 
         // Final count of history tokens
@@ -73,9 +88,11 @@ class AIConversationService
         }
         $totalEstimatedTokens = $promptTokens + $toolsTokens + $historyTokens;
 
-        // Log Token Usage Estimates
+        // Log Token Usage Estimates and Intent Classification
         Log::info('Groq Token Estimation & Safety Control', [
-            'tokens_estimated_sent' => $totalEstimatedTokens,
+            'intencion_detectada' => $intent ?? 'no_detectada',
+            'tools_enviadas' => $toolNames ?? [],
+            'tokens_estimados_antes_groq' => $totalEstimatedTokens,
             'tokens_history' => $historyTokens,
             'tokens_prompt' => $promptTokens,
             'tokens_tools' => $toolsTokens,
@@ -98,28 +115,38 @@ class AIConversationService
     }
 
     /**
-     * Bounded history pruner starting cleanly on 'user' messages to avoid orphaned tool calls.
+     * Bounded history pruner starting cleanly on human 'user' messages (no tool responses) to avoid orphaned tool calls.
      */
     public static function pruneHistory(array $history, int $maxMessages = 10): array
     {
-        if (count($history) <= $maxMessages) {
+        $total = count($history);
+        if ($total <= $maxMessages) {
             return $history;
         }
 
-        $total = count($history);
         $cutoff = $total - $maxMessages;
 
-        // Advance to a user message
-        while ($cutoff < $total && $history[$cutoff]['role'] !== 'user') {
-            $cutoff++;
+        // Helper check to identify true human user messages (role user and not a tool response)
+        $isHumanUserMsg = fn($msg) => ($msg['role'] ?? '') === 'user' && !isset($msg['tool_call_id']) && !isset($msg['name']);
+
+        // Scan backwards to find the nearest human 'user' message to start the history cleanly
+        while ($cutoff > 0 && !$isHumanUserMsg($history[$cutoff])) {
+            $cutoff--;
         }
 
-        // Fallback: search backwards for the last user message
-        if ($cutoff >= $total) {
-            for ($i = $total - 1; $i >= 0; $i--) {
-                if ($history[$i]['role'] === 'user') {
-                    $cutoff = $i;
-                    break;
+        // If after scanning backwards, the resulting array size exceeds $maxMessages + 4
+        // fallback to scanning forwards
+        if (($total - $cutoff) > ($maxMessages + 4)) {
+            $cutoff = $total - $maxMessages;
+            while ($cutoff < $total && !$isHumanUserMsg($history[$cutoff])) {
+                $cutoff++;
+            }
+            if ($cutoff >= $total) {
+                for ($i = $total - 1; $i >= 0; $i--) {
+                    if ($isHumanUserMsg($history[$i])) {
+                        $cutoff = $i;
+                        break;
+                    }
                 }
             }
         }

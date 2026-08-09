@@ -17,6 +17,7 @@ import { Supplier } from '@/shared/types'
 import { FiEdit2 } from 'react-icons/fi'
 import { cn } from '@/shared/utils/cn'
 import { handleApiError } from '@/shared/utils/formErrors'
+import { normalizePhone } from '@/shared/utils/phone'
 
 const supplierSchema = z.object({
   business_name: z.string()
@@ -109,10 +110,14 @@ export default function Suppliers() {
   // Mutations
   const saveMutation = useMutation({
     mutationFn: async (data: SupplierFormInputs) => {
+      const payload = {
+        ...data,
+        phone: normalizePhone(data.phone)
+      }
       if (editingSupplier) {
-        return suppliersService.update(editingSupplier.id, data)
+        return suppliersService.update(editingSupplier.id, payload)
       } else {
-        return suppliersService.create(data)
+        return suppliersService.create(payload)
       }
     },
     onSuccess: () => {

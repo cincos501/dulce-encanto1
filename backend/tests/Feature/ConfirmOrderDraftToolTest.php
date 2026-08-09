@@ -120,7 +120,7 @@ class ConfirmOrderDraftToolTest extends TestCase
 
         // 4. Assert order creation in MySQL
         $this->assertStringContainsString('registrado correctamente', $response);
-        $this->assertStringContainsString('Número de pedido: #', $response);
+        $this->assertStringContainsString('pedido #', $response);
 
         // Parse order ID from response
         preg_match('/#(\d+)/', $response, $matches);

@@ -222,9 +222,16 @@ export default function Menu() {
                     </p>
                   </div>
 
-                  {product.has_multiple_variants && (
-                    <div className="text-[9px] text-text-sub font-bold uppercase tracking-wider bg-stone-50 dark:bg-stone-900 border border-border py-1 px-2.5 rounded flex items-center justify-center gap-1 select-none">
-                      <span>Más opciones disponibles</span>
+                  {product.variants && product.variants.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 justify-center py-1">
+                      {product.variants.map((v: any) => (
+                        <span
+                          key={v.id}
+                          className="text-[8px] font-bold uppercase tracking-wider bg-stone-50 dark:bg-stone-900 border border-border/80 px-2 py-0.5 rounded-full text-text-sub select-none"
+                        >
+                          {v.name}
+                        </span>
+                      ))}
                     </div>
                   )}
 
@@ -430,8 +437,16 @@ export default function Menu() {
                       <span className="font-bold text-sm text-text-main w-8 text-center">{itemQuantity}</span>
                       <button
                         type="button"
-                        onClick={() => setItemQuantity(prev => prev + 1)}
+                        onClick={() => {
+                          setItemQuantity(prev => {
+                            if (activeVariant?.sale_type === 'READY_STOCK' && activeVariant.stock !== undefined) {
+                              return Math.min(activeVariant.stock, prev + 1);
+                            }
+                            return prev + 1;
+                          });
+                        }}
                         className="p-1.5 text-text-sub hover:text-primary transition-colors cursor-pointer"
+                        disabled={activeVariant?.sale_type === 'READY_STOCK' && activeVariant.stock !== undefined && itemQuantity >= activeVariant.stock}
                       >
                         <FiPlus className="text-xs" />
                       </button>
@@ -450,6 +465,7 @@ export default function Menu() {
                         />
                       </div>
                       <Button
+                        disabled={activeVariant.sale_type === 'READY_STOCK' && activeVariant.stock <= 0}
                         onClick={() => {
                           const selectedExtras = (activeVariant.extras || [])
                             .filter((e: any) => selectedExtraIds.includes(e.id))
@@ -469,7 +485,9 @@ export default function Menu() {
                             promo_price: activeVariant.promo_price ? Number(activeVariant.promo_price) : null,
                             quantity: itemQuantity,
                             extras: selectedExtras,
-                            image_url: detailData.gallery?.[0]?.image_url || null
+                            image_url: detailData.gallery?.[0]?.image_url || null,
+                            sale_type: activeVariant.sale_type,
+                            stock: activeVariant.stock
                           })
                           toast.success('Producto añadido al carrito.')
                           setSelectedProductId(null)
@@ -477,7 +495,7 @@ export default function Menu() {
                         className="text-[10px] uppercase tracking-wider gap-1.5 font-bold"
                       >
                         <FiShoppingBag className="text-xs" />
-                        <span>Añadir al pedido</span>
+                        <span>{activeVariant.sale_type === 'READY_STOCK' && activeVariant.stock <= 0 ? 'Sin Stock' : 'Añadir al pedido'}</span>
                       </Button>
                     </div>
                   )}

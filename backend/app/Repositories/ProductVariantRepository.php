@@ -52,7 +52,7 @@ class ProductVariantRepository implements ProductVariantRepositoryInterface
      */
     public function paginate(int $perPage = 10, ?string $search = null, ?int $productId = null, bool $onlyActive = false): LengthAwarePaginator
     {
-        $query = ProductVariant::with('product');
+        $query = ProductVariant::with(['product', 'promotions']);
 
         if ($productId !== null) {
             $query->where('product_id', $productId);
@@ -75,7 +75,22 @@ class ProductVariantRepository implements ProductVariantRepositoryInterface
             });
         }
 
-        return $query->orderBy('name')->paginate($perPage);
+        $paginator = $query->orderBy('name')->paginate($perPage);
+
+        foreach ($paginator->items() as $variant) {
+            $activePromo = $variant->promotions
+                ->where('is_active', true)
+                ->where('start_date', '<=', now())
+                ->where('end_date', '>=', now())
+                ->first();
+            if ($activePromo !== null) {
+                $discountVal = (float) $activePromo->discount;
+                $discountStr = $activePromo->discount_type === 'percentage' ? "{$discountVal}%" : "Bs. {$discountVal}";
+                $variant->name .= " (Promo activa: {$activePromo->name} - Descuento: {$discountStr})";
+            }
+        }
+
+        return $paginator;
     }
 
     /**

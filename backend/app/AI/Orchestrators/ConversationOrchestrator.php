@@ -30,8 +30,42 @@ class ConversationOrchestrator
     {
         $phone = $message->phone;
 
+        // Turn ON typing status indicator in Chatwoot
+        $this->chatwootService->toggleTypingStatus($message->conversationId, true);
+
         // 1. Load context memory from Redis
         $session = $this->memory->loadSession($phone, $message->senderName);
+
+        // Check if previous session has been inactive for >= 30 minutes
+        if (!empty($session->updatedAt) && !empty($session->history)) {
+            try {
+                $lastActive = \Carbon\Carbon::parse($session->updatedAt);
+                if (now()->diffInMinutes($lastActive) >= 30) {
+                    $summary = $this->summarizePreviousSession($session->history);
+
+                    // Send private internal note to Chatwoot for human agent awareness
+                    $this->chatwootService->sendPrivateNote(
+                        $message->conversationId,
+                        "🤖 [IA Encantito - Resumen de Sesión Anterior (Inactividad > 30 min)]:\n{$summary}"
+                    );
+
+                    // Replace verbose history with compact summary turn to save tokens
+                    $session->history = [
+                        [
+                            'role' => 'user',
+                            'content' => "Resumen de interacción previa con el cliente (hace más de 30 min):\n{$summary}"
+                        ],
+                        [
+                            'role' => 'assistant',
+                            'content' => "Entendido. Tengo presente la interacción anterior."
+                        ]
+                    ];
+                    $session->step = 'idle';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Error checking session inactivity summary', ['error' => $e->getMessage()]);
+            }
+        }
 
         // 2. Append user's incoming message to history
         $this->memory->addMessage($session, 'user', $message->text);
@@ -47,7 +81,9 @@ class ConversationOrchestrator
         }
 
         // 3. Get registered tools schema dynamically filtered by context
-        $toolsSchema = $this->toolRegistry->getToolsSchema($message->text, $hasActiveDraft);
+        $toolsSchema = $this->toolRegistry->getToolsSchema($session->history, $hasActiveDraft);
+        $intent = $this->toolRegistry->getLastIntent();
+        $toolNames = $this->toolRegistry->getLastToolNames();
 
         $maxIterations = 5; // Prevent infinite tool calling loops
         $iteration = 0;
@@ -62,7 +98,7 @@ class ConversationOrchestrator
             ]);
 
             // Call LLM
-            $aiResponse = $this->aiService->generateReply($session->history, $toolsSchema);
+            $aiResponse = $this->aiService->generateReply($session->history, $toolsSchema, $intent, $toolNames);
 
             if (!empty($aiResponse->toolCalls)) {
                 Log::info('AI decided to execute tool calls', [
@@ -90,6 +126,28 @@ class ConversationOrchestrator
                         'phone' => $phone
                     ]);
 
+                    if ($toolName === 'get_variant_extras') {
+                        // Check if a variant was selected: search_variants was called, and the user has explicitly selected one
+                        $variantSelected = \App\AI\Registry\ToolRegistry::isVariantSelected($session->history);
+
+                        if (!$variantSelected) {
+                            Log::warning("Se bloqueó get_variant_extras sin variante seleccionada", [
+                                'phone' => $phone,
+                                'arguments' => $arguments
+                            ]);
+                            $result = "ERROR DE FLUJO: No existe una variante seleccionada. Primero debes mostrar las variantes disponibles con search_variants y esperar la selección explícita del cliente antes de consultar extras.";
+                            
+                            $toolMsg = [
+                                'role' => 'tool',
+                                'name' => $toolName,
+                                'tool_call_id' => $toolCallId,
+                                'content' => $result,
+                            ];
+                            $this->memory->addMessageRaw($session, $toolMsg);
+                            continue;
+                        }
+                    }
+
                     $tool = $this->toolRegistry->get($toolName);
                     if ($tool) {
                         try {
@@ -97,6 +155,14 @@ class ConversationOrchestrator
                             Log::info("Tool {$toolName} executed successfully", [
                                 'result_summary' => substr($result, 0, 300) . (strlen($result) > 300 ? '...' : '')
                             ]);
+
+                            // Send private internal note to Chatwoot for key order actions
+                            if (in_array($toolName, ['add_to_order_draft', 'remove_from_order_draft', 'add_extra_to_order_item', 'confirm_order_draft'], true)) {
+                                $this->chatwootService->sendPrivateNote(
+                                    $message->conversationId,
+                                    "🤖 [IA Encantito - Nota Interna]: Ejecutó '{$toolName}'. Resultado: {$result}"
+                                );
+                            }
                         } catch (\Throwable $e) {
                             Log::error("Error executing tool {$toolName}", ['error' => $e->getMessage()]);
                             $result = "Error al ejecutar la herramienta: " . $e->getMessage();
@@ -139,6 +205,9 @@ class ConversationOrchestrator
             $reply ?? 'Lo siento, no pude procesar tu solicitud.'
         );
 
+        // Turn OFF typing status indicator in Chatwoot
+        $this->chatwootService->toggleTypingStatus($message->conversationId, false);
+
         Log::info('ConversationOrchestrator successfully processed message', [
             'conversation_id' => $message->conversationId,
             'phone' => $phone,
@@ -146,5 +215,27 @@ class ConversationOrchestrator
         ]);
 
         return $reply ?? '';
+    }
+
+    /**
+     * Create a concise summary of the previous conversational history.
+     */
+    protected function summarizePreviousSession(array $history): string
+    {
+        $userPrompts = [];
+        foreach ($history as $msg) {
+            if (($msg['role'] ?? '') === 'user' && !empty($msg['content']) && !isset($msg['tool_call_id']) && !isset($msg['name'])) {
+                $userPrompts[] = $msg['content'];
+            }
+        }
+
+        if (empty($userPrompts)) {
+            return "El cliente realizó consultas generales en el chat.";
+        }
+
+        $uniquePrompts = array_values(array_unique($userPrompts));
+        $recentPrompts = array_slice($uniquePrompts, -4);
+
+        return "Consultas realizadas anteriormente por el cliente: " . implode(" | ", $recentPrompts);
     }
 }

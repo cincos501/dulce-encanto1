@@ -48,7 +48,7 @@ class InventoryStockFlowTest extends TestCase
         // Create Supplier
         $this->supplier = Supplier::create([
             'business_name' => 'Distribuidor Test',
-            'phone' => '+56900000000',
+            'phone' => '59170012346',
             'email' => 'supplier@test.com',
             'is_active' => true,
         ]);
@@ -109,7 +109,7 @@ class InventoryStockFlowTest extends TestCase
         // Create Customer
         $this->customer = Customer::create([
             'full_name' => 'Cliente Test',
-            'phone' => '+56999999999',
+            'phone' => '59177872032',
             'email' => 'client@test.com',
         ]);
     }
@@ -272,7 +272,7 @@ class InventoryStockFlowTest extends TestCase
     {
         $payload = [
             'customer_name' => 'John Doe',
-            'customer_phone' => '+56999999999',
+            'customer_phone' => '59177872032',
             'delivery_type' => 'Delivery',
             'address' => 'Av. Providencia 1234',
             'observations' => 'Ring bell twice',
@@ -317,7 +317,7 @@ class InventoryStockFlowTest extends TestCase
         ]);
 
         // Verify customer has delivery details JSON encoded in email column
-        $customer = \App\Models\Customer::where('phone', '+56999999999')->first();
+        $customer = \App\Models\Customer::where('phone', '59177872032')->first();
         $this->assertNotNull($customer);
         $this->assertEquals('John Doe', $customer->full_name);
         

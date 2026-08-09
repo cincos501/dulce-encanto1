@@ -46,6 +46,8 @@ Este documento constituye la única fuente oficial del modelo de datos real impl
     *   `price` (Decimal 10,2)
     *   `serves_people` (Integer, Nullable)
     *   `is_active` (Boolean, Default true)
+    *   `sale_type` (String, Default 'MADE_TO_ORDER')
+    *   `stock` (Integer, Default 0)
     *   `created_at` / `updated_at` (Timestamps)
 *   **Relaciones:**
     *   `Product` (N) ---- (1) `ProductVariant`
@@ -193,6 +195,7 @@ Este documento constituye la única fuente oficial del modelo de datos real impl
     *   `id` (Bigint, Primary Key, Auto-increment)
     *   `customer_id` (Bigint, Foreign Key -> `customers`, Nullable, Delete set null)
     *   `status` (Enum: `'Pendiente'`, `'Confirmado'`, `'En preparación'`, `'Listo'`, `'Entregado'`, `'Cancelado'`, Default `'Pendiente'`)
+    *   `production_stage` (String/Varchar, Default `'Programado'`)
     *   `total` (Decimal 10,2, Default 0.00)
     *   `delivery_date` (DateTime, Nullable)
     *   `created_at` / `updated_at` (Timestamps)
@@ -235,6 +238,18 @@ Este documento constituye la única fuente oficial del modelo de datos real impl
     *   `status` (String/Varchar, Default `'Pendiente'`)
     *   `payment_date` (DateTime)
     *   `created_at` / `updated_at` (Timestamps)
+
+### `production_batches`
+*   **Descripción:** Registro histórico de lotes producidos manualmente para variantes READY_STOCK.
+*   **Campos:**
+    *   `id` (Bigint, Primary Key, Auto-increment)
+    *   `product_variant_id` (Bigint, Foreign Key -> `product_variants`, Cascade delete)
+    *   `quantity` (Integer)
+    *   `notes` (Text, Nullable)
+    *   `production_date` (DateTime)
+    *   `created_at` / `updated_at` (Timestamps)
+*   **Relaciones:**
+    *   `ProductVariant` (1) ---- (N) `ProductionBatch`
 
 ---
 

@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { toast } from 'sonner'
 import { 
   Button, 
   Input, 
@@ -15,6 +17,7 @@ import ordersService from '@/shared/services/ordersService'
 import { FiTrash2, FiPlus, FiMinus, FiMapPin, FiClock, FiShoppingBag, FiUser, FiInfo, FiCheck } from 'react-icons/fi'
 import productPlaceholder from '@/assets/placeholders/product-placeholder.webp'
 import { handleApiError } from '@/shared/utils/formErrors'
+import { normalizePhone } from '@/shared/utils/phone'
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -46,6 +49,10 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const [step, setStep] = useState<number>(1) // 1: Productos, 2: Datos, 3: Confirmación
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const hasMadeToOrder = cartItems.some(item => 
+    item.sale_type !== 'READY_STOCK'
+  )
 
   const {
     register,
@@ -88,9 +95,22 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
       'delivery_date',
       'delivery_time'
     ])
-    if (isValid) {
-      setStep(3)
+    if (!isValid) return
+
+    // 24-hours advance notice validation for MADE_TO_ORDER items
+    if (hasMadeToOrder) {
+      const selectedDateTime = new Date(`${deliveryDate}T${deliveryTime}`)
+      const now = new Date()
+      const diffMs = selectedDateTime.getTime() - now.getTime()
+      const diffHours = diffMs / (1000 * 60 * 60)
+
+      if (diffHours < 24) {
+        toast.error('Los productos bajo pedido requieren un mínimo de 24 horas de anticipación para su preparación artesanal. Por favor elige otra fecha u hora.')
+        return
+      }
     }
+
+    setStep(3)
   }
 
   const onSubmit = async (data: CheckoutFormInputs) => {
@@ -100,14 +120,14 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
     try {
       const payload = {
         customer_name: data.customer_name,
-        customer_phone: data.customer_phone,
+        customer_phone: normalizePhone(data.customer_phone),
         delivery_type: data.delivery_type,
         address: data.delivery_type === 'Delivery' ? data.address : null,
         observations: data.observations || null,
         delivery_date: data.delivery_date,
         delivery_time: data.delivery_time,
         items: cartItems.map(item => ({
-          product_variant_id: item.product_variant_id,
+          product_variant_id: item.variant_id,
           quantity: item.quantity,
           extras: item.extras.map(e => e.id)
         }))
@@ -116,25 +136,12 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
       const response = await ordersService.checkout(payload)
       const order = response.data?.data
 
-      if (order) {
-        // Clear cart and generate whatsapp link
+      if (order && order.qr_id) {
         clearCart()
-
-        // Construct message
-        const orderId = String(order.id).padStart(6, '0')
-        const itemsText = cartItems.map(item => {
-          const extrasStr = item.extras.length > 0 ? ` (+${item.extras.map(e => e.name).join(', ')})` : ''
-          return `- ${item.quantity}x ${item.product_name} (${item.variant_name})${extrasStr}`
-        }).join('\n')
-
-        const message = `Hola.\nAcabo de realizar el pedido Nº ${orderId}.\n\n*Resumen del Pedido:*\n${itemsText}\n\n*Total:* $${cartSubtotal.toFixed(2)}\n*Tipo de entrega:* ${data.delivery_type}${data.delivery_type === 'Delivery' ? `\n*Dirección:* ${data.address}` : ''}\n\nMi nombre es ${data.customer_name}.\nMuchas gracias.`
-
-        const encodedText = encodeURIComponent(message)
-        // Chilean support WhatsApp ( Chile country code +56 )
-        const whatsappUrl = `https://wa.me/56912345678?text=${encodedText}`
-
-        window.open(whatsappUrl, '_blank')
         onClose()
+        navigate(`/payment/${order.qr_id}`)
+      } else {
+        setSubmitError('El pedido se creó, pero no se pudo generar el código de pago. Por favor contacta al administrador.')
       }
     } catch (err: any) {
       if (err.response?.status === 422) {
@@ -276,7 +283,8 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                                 <button
                                   type="button"
                                   onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  className="p-1 text-text-sub hover:text-primary transition-colors cursor-pointer"
+                                  className="p-1 text-text-sub hover:text-primary transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                  disabled={item.sale_type === 'READY_STOCK' && item.stock !== undefined && item.quantity >= item.stock}
                                 >
                                   <FiPlus className="text-[10px]" />
                                 </button>
@@ -407,6 +415,27 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                   error={errors.delivery_time?.message}
                 />
               </div>
+
+              {/* Dynamic Warnings */}
+              {hasMadeToOrder && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-350 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
+                    <FiInfo className="text-sm" />
+                    <span>Aviso de Anticipación Obligatoria</span>
+                  </div>
+                  <p>Tu carrito contiene productos bajo pedido. Éstos se preparan frescos y requieren un **mínimo de 24 horas de anticipación**.</p>
+                </div>
+              )}
+
+              {deliveryType === 'Delivery' && (
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 dark:text-blue-350 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-blue-700 dark:text-blue-400">
+                    <FiInfo className="text-sm" />
+                    <span>Costo de Despacho</span>
+                  </div>
+                  <p>El costo del envío **no está incluido** en el total de la compra. Se pagará directamente al repartidor al momento de recibir el pedido.</p>
+                </div>
+              )}
 
               <Textarea
                 label="Observaciones / Comentarios adicionales (Opcional)"

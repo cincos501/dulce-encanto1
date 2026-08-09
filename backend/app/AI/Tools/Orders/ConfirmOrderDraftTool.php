@@ -9,6 +9,7 @@ use App\AI\Orders\OrderDraftManager;
 use App\Services\OrderService;
 use App\DTO\StoreOrderDTO;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Arr;
@@ -98,22 +99,18 @@ class ConfirmOrderDraftTool implements ToolInterface
             return "Error: Formato de fecha u hora inválido. Asegúrese de ingresar la fecha en formato AAAA-MM-DD y la hora en formato HH:MM.";
         }
 
-        // 4. Validate cake 24-hours advance notice requirement
-        $hasTorta = false;
+        // 4. Validate 24-hours advance notice requirement (only for MADE_TO_ORDER)
+        $hasMadeToOrder = false;
         foreach ($draft->items as $item) {
-            if (stripos($item->productName, 'torta') !== false) {
-                $hasTorta = true;
-                break;
-            }
-            $product = Product::with('category')->find($item->productId);
-            if ($product && $product->category && stripos($product->category->name, 'torta') !== false) {
-                $hasTorta = true;
+            $variant = ProductVariant::find($item->variantId);
+            if ($variant && $variant->sale_type !== 'READY_STOCK') {
+                $hasMadeToOrder = true;
                 break;
             }
         }
 
-        if ($hasTorta && $requestedDateTime->lt(now()->addHours(24))) {
-            return "Lo sentimos, nuestras tortas requieren mínimo 24 horas de anticipación. ¿Desea elegir otra fecha?";
+        if ($hasMadeToOrder && $requestedDateTime->lt(now()->addHours(24))) {
+            return "Lo sentimos, los productos bajo pedido requieren mínimo 24 horas de anticipación. ¿Desea elegir otra fecha?";
         }
 
         // 5. Build DTO items array structure
@@ -144,7 +141,21 @@ class ConfirmOrderDraftTool implements ToolInterface
             // 7. Clear the draft in Redis
             $this->draftManager->clearDraft($phone);
 
-            return "¡Perfecto! Tu pedido fue registrado correctamente.\n\nNúmero de pedido: #{$order->id}\n\nTe estaremos informando cualquier actualización.";
+            // 8. Fetch the generated QR payment code (since observer runs synchronously, it is already persisted)
+            $pendingPayment = $order->payments()->where('status', 'Pendiente')->first();
+            $qrId = $pendingPayment?->transaction_code;
+
+            if ($qrId) {
+                $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
+                $paymentLink = "{$frontendUrl}/payment/{$qrId}";
+
+                return "¡Perfecto! Tu pedido #{$order->id} fue registrado correctamente. 🍰✨\n\n" .
+                       "Para completar tu compra, por favor realiza el pago ingresando al siguiente enlace seguro:\n" .
+                       "{$paymentLink}\n\n" .
+                       "Una vez confirmado el pago, iniciaremos la preparación de tus productos.";
+            }
+
+            return "¡Perfecto! Tu pedido #{$order->id} fue registrado correctamente en estado pendiente. Generando enlace de pago, por favor espera un momento.";
         } catch (ValidationException $e) {
             Log::warning('Validation error during chatbot order confirmation', ['errors' => $e->errors()]);
             $errorMessages = implode(', ', Arr::flatten($e->errors()));

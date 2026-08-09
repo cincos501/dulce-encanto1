@@ -40,6 +40,8 @@ export interface ProductVariant {
   price: number;
   serves_people?: number | null;
   is_active: boolean;
+  sale_type?: string;
+  stock?: number;
   product?: Product;
   images?: ProductImage[];
   extras?: Extra[];
@@ -120,6 +122,8 @@ export interface CatalogVariant {
   price: number;
   promo_price: number | null;
   serves_people?: number | null;
+  sale_type?: string;
+  stock?: number;
   extras?: CatalogExtra[];
 }
 

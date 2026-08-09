@@ -28,14 +28,42 @@ class OrderObserver
      */
     public function updated(Order $order): void
     {
-        // 1. Only trigger notification when status changes from anything else to "Listo"
-        if ($order->isDirty('status') && $order->status === 'Listo' && $order->getOriginal('status') !== 'Listo') {
-            $this->notificationService->notifyStatusReady($order);
-        }
+        if ($order->isDirty('status')) {
+            $oldStatus = $order->getOriginal('status');
+            $newStatus = $order->status;
 
-        // 2. Trigger Baneco QR generation when status transitions to "Pendiente"
-        if ($order->isDirty('status') && $order->status === 'Pendiente' && $order->getOriginal('status') !== 'Pendiente') {
-            $this->dispatchBanecoQR($order);
+            // 1. Order changed to "Listo" (Notify customer and admin)
+            if ($newStatus === 'Listo' && $oldStatus !== 'Listo') {
+                $this->notificationService->notifyStatusReady($order);
+                $this->notificationService->notifyAdminOrderReady($order);
+            }
+
+            // 2. Order changed to "Cancelado" (Notify customer)
+            if ($newStatus === 'Cancelado' && $oldStatus !== 'Cancelado') {
+                $this->notificationService->notifyStatusCancelled($order);
+            }
+
+            // 3. Order changed to "Confirmado" (Notify repostero and client)
+            if ($newStatus === 'Confirmado' && $oldStatus !== 'Confirmado') {
+                $this->notificationService->notifyReposteroOrderConfirmed($order);
+                $this->notificationService->notifyClientOrderConfirmed($order);
+            }
+
+            // 4. Order changed to "En preparación" (Notify repostero and client)
+            if ($newStatus === 'En preparación' && $oldStatus !== 'En preparación') {
+                $this->notificationService->notifyReposteroOrderInPreparation($order);
+                $this->notificationService->notifyClientOrderInPreparation($order);
+            }
+
+            // 5. Order changed to "Entregado" (Notify client)
+            if ($newStatus === 'Entregado' && $oldStatus !== 'Entregado') {
+                $this->notificationService->notifyClientOrderDelivered($order);
+            }
+
+            // 6. Trigger Baneco QR generation when status transitions to "Pendiente"
+            if ($newStatus === 'Pendiente' && $oldStatus !== 'Pendiente' && $oldStatus !== null) {
+                $this->dispatchBanecoQR($order);
+            }
         }
     }
 
@@ -48,13 +76,13 @@ class OrderObserver
             'transactionId' => (string) $order->id,
             'accountCredit' => (string) config('baneco.account', 'placeholder_account_num'),
             'currency' => 'BOB',
-            'amount' => (float) $order->total,
+            'amount' => round((float) $order->total, 2),
             'description' => "Pago del pedido #{$order->id}",
             'dueDate' => now()->addDays((int) config('baneco.qr_expiration_days', 1))->format('Y-m-d'),
             'singleUse' => true,
             'modifyAmount' => false
         ];
 
-        \App\Baneco\Jobs\GenerateQRJob::dispatch($qrData);
+        \App\Baneco\Jobs\GenerateQRJob::dispatchSync($qrData);
     }
 }

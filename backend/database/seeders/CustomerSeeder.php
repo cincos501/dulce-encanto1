@@ -15,9 +15,9 @@ class CustomerSeeder extends Seeder
     public function run(): void
     {
         $customers = [
-            ['full_name' => 'María José Soto', 'phone' => '+56911112222', 'email' => 'mariajose@example.com'],
-            ['full_name' => 'Juan Carlos Perez', 'phone' => '+56933334444', 'email' => 'juanperez@example.com'],
-            ['full_name' => 'Sofía Camila Castro', 'phone' => '+56955556666', 'email' => 'sofiacastro@example.com'],
+            ['full_name' => 'María José Soto', 'phone' => '59177872031', 'email' => 'mariajose@example.com'],
+            ['full_name' => 'Juan Carlos Perez', 'phone' => '59177872032', 'email' => 'juanperez@example.com'],
+            ['full_name' => 'Sofía Camila Castro', 'phone' => '59177872033', 'email' => 'sofiacastro@example.com'],
         ];
 
         foreach ($customers as $customer) {

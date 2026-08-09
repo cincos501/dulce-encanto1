@@ -60,7 +60,7 @@ class ConversationOrchestratorTest extends TestCase
         $mockAIService = $this->mock(AIConversationService::class, function (MockInterface $mock) {
             $mock->shouldReceive('generateReply')
                 ->once()
-                ->with(\Mockery::type('array'), \Mockery::type('array'))
+                ->with(\Mockery::type('array'), \Mockery::type('array'), 'catalogo', \Mockery::type('array'))
                 ->andReturn(new AIResponseDTO(reply: 'Hola, ¿cómo estás?'));
         });
 
@@ -74,7 +74,11 @@ class ConversationOrchestratorTest extends TestCase
         $mockRegistry = $this->mock(ToolRegistry::class, function (MockInterface $mock) {
             $mock->shouldReceive('getToolsSchema')
                 ->once()
-                ->with('Hola', false)
+                ->with(\Mockery::type('array'), false)
+                ->andReturn([]);
+            $mock->shouldReceive('getLastIntent')
+                ->andReturn('catalogo');
+            $mock->shouldReceive('getLastToolNames')
                 ->andReturn([]);
         });
 
@@ -142,7 +146,7 @@ class ConversationOrchestratorTest extends TestCase
             // First call returns a tool call
             $mock->shouldReceive('generateReply')
                 ->once()
-                ->with(\Mockery::type('array'), \Mockery::type('array'))
+                ->with(\Mockery::type('array'), \Mockery::type('array'), 'catalogo', \Mockery::type('array'))
                 ->andReturn(new AIResponseDTO(reply: null, toolCalls: [
                     [
                         'id' => 'call_123',
@@ -156,7 +160,7 @@ class ConversationOrchestratorTest extends TestCase
             // Second call returns final text response
             $mock->shouldReceive('generateReply')
                 ->once()
-                ->with(\Mockery::type('array'), \Mockery::type('array'))
+                ->with(\Mockery::type('array'), \Mockery::type('array'), 'catalogo', \Mockery::type('array'))
                 ->andReturn(new AIResponseDTO(reply: 'Tenemos torta de chocolate.'));
         });
 
@@ -177,8 +181,12 @@ class ConversationOrchestratorTest extends TestCase
         $mockRegistry = $this->mock(ToolRegistry::class, function (MockInterface $mock) use ($mockTool) {
             $mock->shouldReceive('getToolsSchema')
                 ->once()
-                ->with('¿Qué tortas tienen?', false)
+                ->with(\Mockery::type('array'), false)
                 ->andReturn([['type' => 'function']]);
+            $mock->shouldReceive('getLastIntent')
+                ->andReturn('catalogo');
+            $mock->shouldReceive('getLastToolNames')
+                ->andReturn(['search_products']);
 
             $mock->shouldReceive('get')
                 ->once()

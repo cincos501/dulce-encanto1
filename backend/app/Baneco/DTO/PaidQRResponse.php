@@ -17,6 +17,10 @@ class PaidQRResponse
 
     public static function fromArray(array $data): self
     {
+        if (isset($data['response']) && is_array($data['response'])) {
+            $data = $data['response'];
+        }
+
         $list = [];
         $rawList = $data['paymentList'] ?? [];
         foreach ($rawList as $item) {

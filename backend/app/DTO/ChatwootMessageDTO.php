@@ -42,11 +42,21 @@ class ChatwootMessageDTO
         $senderName = (string) ($sender['name'] ?? '');
 
         $text = (string) ($payload['content'] ?? '');
+        $attachments = $payload['attachments'] ?? [];
+        if (empty($text) && !empty($attachments)) {
+            $attLabels = [];
+            foreach ($attachments as $att) {
+                $fileType = $att['file_type'] ?? 'archivo';
+                $attLabels[] = "[El cliente envió un archivo adjunto de tipo: {$fileType}]";
+            }
+            $text = implode(' ', $attLabels);
+        }
+
         $messageType = (string) ($payload['message_type'] ?? '');
 
         return new self(
             conversationId: $conversationId,
-            phone: trim($phone),
+            phone: \App\Support\PhoneHelper::normalize($phone),
             senderName: $senderName,
             text: trim($text),
             messageType: $messageType,
