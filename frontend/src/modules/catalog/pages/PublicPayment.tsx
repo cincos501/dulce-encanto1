@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Card, CardContent, Badge, Typography, Button } from '@/design-system'
-import { FiCheckCircle, FiClock, FiAlertCircle, FiRefreshCw, FiShoppingBag, FiArrowLeft } from 'react-icons/fi'
+import { FiCheckCircle, FiClock, FiAlertCircle, FiRefreshCw, FiShoppingBag, FiArrowLeft, FiMessageCircle } from 'react-icons/fi'
 import axios from 'axios'
 
 interface PaymentDetails {
@@ -33,7 +33,8 @@ export default function PublicPayment() {
   const fetchPaymentDetails = async (isManual = false) => {
     if (isManual) setChecking(true)
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/payments/qr/${qrId}`)
+      const baseUrl = ((import.meta.env.VITE_API_URL as string) || 'http://localhost:8000').replace(/\/+$/, '')
+      const response = await axios.get(`${baseUrl}/api/payments/qr/${qrId}`)
       if (response.data?.success) {
         setPayment(response.data.data)
         setError(null)
@@ -190,8 +191,21 @@ export default function PublicPayment() {
                   </Typography>
                   <p className="text-text-sub text-xs max-w-sm mx-auto font-semibold leading-relaxed">
                     Hemos recibido tu pago de forma exitosa. Tu pedido ya ingresó a la lista de producción del chef de Dulce Encanto.
-                    Te enviaremos un WhatsApp cuando tus deliciosos productos estén listos.
                   </p>
+                  
+                  <div className="pt-2">
+                    <a
+                      href={`https://wa.me/59177872032?text=${encodeURIComponent(
+                        `¡Hola Dulce Encanto! Acabo de realizar y pagar el pedido #${String(payment.order_id).padStart(6, '0')} a nombre de ${payment.customer.name} (Tel: ${payment.customer.phone}) por Bs. ${payment.amount.toFixed(2)}. Por favor revisar los detalles.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-xl shadow-lg hover:shadow-emerald-600/30 transition-all active:scale-95"
+                    >
+                      <FiMessageCircle className="text-base" />
+                      <span>Notificar por WhatsApp</span>
+                    </a>
+                  </div>
                 </div>
               ) : (
                 <div className="py-12 px-4 space-y-4 text-center">

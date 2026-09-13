@@ -40,7 +40,7 @@ export default function Extras() {
   const [editingExtra, setEditingExtra] = useState<Extra | null>(null)
 
   // React Hook Form
-  const form = useForm<ExtraFormInputs>({
+  const form = useForm({
     resolver: zodResolver(extraSchema),
     defaultValues: {
       name: '',

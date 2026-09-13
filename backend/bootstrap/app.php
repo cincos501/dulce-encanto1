@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Exceptions\UnauthorizedException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -21,6 +22,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+            'sanctum/csrf-cookie',
+        ]);
+
+        $middleware->redirectGuestsTo(function (Request $request) {
+            return null;
+        });
 
         $middleware->alias([
             'user.active' => EnsureUserIsActive::class,
@@ -51,6 +61,16 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => 'No autorizado. Debe iniciar sesión.',
                     'errors' => [],
                 ], 401);
+            }
+        });
+
+        $exceptions->render(function (UnauthorizedException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Acceso denegado. No posee los permisos suficientes para realizar esta acción.',
+                    'errors' => [],
+                ], 403);
             }
         });
 

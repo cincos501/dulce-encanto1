@@ -27,7 +27,7 @@ const promotionSchema = z.object({
   discount_type: z.enum(['percentage', 'fixed']),
   discount: z.preprocess(
     (val) => (val === '' ? undefined : Number(val)),
-    z.number({ invalid_type_error: 'El descuento debe ser un número.' }).min(0.01, 'El descuento debe ser mayor a 0.')
+    z.number({ error: 'El descuento debe ser un número.' }).min(0.01, 'El descuento debe ser mayor a 0.')
   ),
   start_date: z.string().min(1, 'La fecha de inicio es requerida.'),
   end_date: z.string().min(1, 'La fecha de cierre es requerida.'),
@@ -56,7 +56,7 @@ export default function Promotions() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   // React Hook Form
-  const form = useForm<PromotionFormInputs>({
+  const form = useForm({
     resolver: zodResolver(promotionSchema),
     defaultValues: {
       name: '',
@@ -451,7 +451,7 @@ export default function Promotions() {
                         <span>
                           {variant.product?.name} — {variant.name}
                         </span>
-                        <span className="text-text-sub font-mono font-bold">Bs. {Number(variant.base_price).toFixed(2)}</span>
+                        <span className="text-text-sub font-mono font-bold">Bs. {Number(variant.price).toFixed(2)}</span>
                       </label>
                     </div>
                   ))

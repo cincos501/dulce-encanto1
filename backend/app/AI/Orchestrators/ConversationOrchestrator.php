@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\AI\Orchestrators;
 
 use App\AI\Contracts\ConversationMemoryInterface;
-use App\AI\Services\AIConversationService;
+use App\AI\Orders\OrderDraftManager;
 use App\AI\Registry\ToolRegistry;
+use App\AI\Services\AIConversationService;
 use App\DTO\ChatwootMessageDTO;
 use App\Services\ChatwootService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-
-use App\AI\Orders\OrderDraftManager;
 
 class ConversationOrchestrator
 {
@@ -37,9 +37,9 @@ class ConversationOrchestrator
         $session = $this->memory->loadSession($phone, $message->senderName);
 
         // Check if previous session has been inactive for >= 30 minutes
-        if (!empty($session->updatedAt) && !empty($session->history)) {
+        if (! empty($session->updatedAt) && ! empty($session->history)) {
             try {
-                $lastActive = \Carbon\Carbon::parse($session->updatedAt);
+                $lastActive = Carbon::parse($session->updatedAt);
                 if (now()->diffInMinutes($lastActive) >= 30) {
                     $summary = $this->summarizePreviousSession($session->history);
 
@@ -53,12 +53,12 @@ class ConversationOrchestrator
                     $session->history = [
                         [
                             'role' => 'user',
-                            'content' => "Resumen de interacción previa con el cliente (hace más de 30 min):\n{$summary}"
+                            'content' => "Resumen de interacción previa con el cliente (hace más de 30 min):\n{$summary}",
                         ],
                         [
                             'role' => 'assistant',
-                            'content' => "Entendido. Tengo presente la interacción anterior."
-                        ]
+                            'content' => 'Entendido. Tengo presente la interacción anterior.',
+                        ],
                     ];
                     $session->step = 'idle';
                 }
@@ -75,7 +75,7 @@ class ConversationOrchestrator
         $hasActiveDraft = false;
         try {
             $draft = $this->draftManager->getDraft($phone);
-            $hasActiveDraft = !empty($draft->items);
+            $hasActiveDraft = ! empty($draft->items);
         } catch (\Throwable $e) {
             Log::warning('Error checking active draft in orchestrator', ['error' => $e->getMessage()]);
         }
@@ -85,7 +85,7 @@ class ConversationOrchestrator
         $intent = $this->toolRegistry->getLastIntent();
         $toolNames = $this->toolRegistry->getLastToolNames();
 
-        $maxIterations = 5; // Prevent infinite tool calling loops
+        $maxIterations = 8; // Prevent infinite tool calling loops
         $iteration = 0;
         $reply = null;
 
@@ -94,16 +94,16 @@ class ConversationOrchestrator
 
             Log::debug('AI model call started', [
                 'iteration' => $iteration,
-                'phone' => $phone
+                'phone' => $phone,
             ]);
 
             // Call LLM
             $aiResponse = $this->aiService->generateReply($session->history, $toolsSchema, $intent, $toolNames);
 
-            if (!empty($aiResponse->toolCalls)) {
+            if (! empty($aiResponse->toolCalls)) {
                 Log::info('AI decided to execute tool calls', [
                     'tool_calls' => $aiResponse->toolCalls,
-                    'phone' => $phone
+                    'phone' => $phone,
                 ]);
 
                 // Append assistant message containing the tool calls to history
@@ -123,20 +123,20 @@ class ConversationOrchestrator
                     Log::info("Executing tool: {$toolName}", [
                         'tool_call_id' => $toolCallId,
                         'arguments' => $arguments,
-                        'phone' => $phone
+                        'phone' => $phone,
                     ]);
 
                     if ($toolName === 'get_variant_extras') {
                         // Check if a variant was selected: search_variants was called, and the user has explicitly selected one
-                        $variantSelected = \App\AI\Registry\ToolRegistry::isVariantSelected($session->history);
+                        $variantSelected = ToolRegistry::isVariantSelected($session->history);
 
-                        if (!$variantSelected) {
-                            Log::warning("Se bloqueó get_variant_extras sin variante seleccionada", [
+                        if (! $variantSelected) {
+                            Log::warning('Se bloqueó get_variant_extras sin variante seleccionada', [
                                 'phone' => $phone,
-                                'arguments' => $arguments
+                                'arguments' => $arguments,
                             ]);
-                            $result = "ERROR DE FLUJO: No existe una variante seleccionada. Primero debes mostrar las variantes disponibles con search_variants y esperar la selección explícita del cliente antes de consultar extras.";
-                            
+                            $result = 'ERROR DE FLUJO: No existe una variante seleccionada. Primero debes mostrar las variantes disponibles con search_variants y esperar la selección explícita del cliente antes de consultar extras.';
+
                             $toolMsg = [
                                 'role' => 'tool',
                                 'name' => $toolName,
@@ -144,6 +144,7 @@ class ConversationOrchestrator
                                 'content' => $result,
                             ];
                             $this->memory->addMessageRaw($session, $toolMsg);
+
                             continue;
                         }
                     }
@@ -153,7 +154,7 @@ class ConversationOrchestrator
                         try {
                             $result = $tool->execute($arguments, ['phone' => $phone]);
                             Log::info("Tool {$toolName} executed successfully", [
-                                'result_summary' => substr($result, 0, 300) . (strlen($result) > 300 ? '...' : '')
+                                'result_summary' => substr($result, 0, 300).(strlen($result) > 300 ? '...' : ''),
                             ]);
 
                             // Send private internal note to Chatwoot for key order actions
@@ -165,7 +166,7 @@ class ConversationOrchestrator
                             }
                         } catch (\Throwable $e) {
                             Log::error("Error executing tool {$toolName}", ['error' => $e->getMessage()]);
-                            $result = "Error al ejecutar la herramienta: " . $e->getMessage();
+                            $result = 'Error al ejecutar la herramienta: '.$e->getMessage();
                         }
                     } else {
                         Log::warning("Tool {$toolName} not found in registry");
@@ -190,7 +191,7 @@ class ConversationOrchestrator
             $reply = $aiResponse->reply ?? '';
             Log::info('AI final response generated', [
                 'reply' => $reply,
-                'phone' => $phone
+                'phone' => $phone,
             ]);
             $this->memory->addMessage($session, 'assistant', $reply);
             break;
@@ -224,18 +225,18 @@ class ConversationOrchestrator
     {
         $userPrompts = [];
         foreach ($history as $msg) {
-            if (($msg['role'] ?? '') === 'user' && !empty($msg['content']) && !isset($msg['tool_call_id']) && !isset($msg['name'])) {
+            if (($msg['role'] ?? '') === 'user' && ! empty($msg['content']) && ! isset($msg['tool_call_id']) && ! isset($msg['name'])) {
                 $userPrompts[] = $msg['content'];
             }
         }
 
         if (empty($userPrompts)) {
-            return "El cliente realizó consultas generales en el chat.";
+            return 'El cliente realizó consultas generales en el chat.';
         }
 
         $uniquePrompts = array_values(array_unique($userPrompts));
         $recentPrompts = array_slice($uniquePrompts, -4);
 
-        return "Consultas realizadas anteriormente por el cliente: " . implode(" | ", $recentPrompts);
+        return 'Consultas realizadas anteriormente por el cliente: '.implode(' | ', $recentPrompts);
     }
 }

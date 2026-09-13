@@ -11,12 +11,34 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SupplyService
 {
     public function __construct(
         protected SupplyRepositoryInterface $supplyRepository
     ) {}
+
+    /**
+     * Ensure a supply can be deactivated (must not be linked to active recipes).
+     */
+    protected function ensureCanDeactivate(Supply $supply): void
+    {
+        $hasActiveRecipes = $supply->recipes()
+            ->whereHas('productVariant', function ($query) {
+                $query->where('is_active', true)
+                    ->whereHas('product', function ($q) {
+                        $q->where('is_active', true);
+                    });
+            })
+            ->exists();
+
+        if ($hasActiveRecipes) {
+            throw ValidationException::withMessages([
+                'is_active' => ['No se puede desactivar este insumo porque se encuentra asociado a recetas de productos activos en el catálogo.'],
+            ]);
+        }
+    }
 
     /**
      * Get paginated and filtered supplies.
@@ -75,6 +97,10 @@ class SupplyService
     {
         $supply = $this->findById($id);
 
+        if ($supply->is_active && isset($dto->isActive) && ! $dto->isActive) {
+            $this->ensureCanDeactivate($supply);
+        }
+
         return DB::transaction(function () use ($supply, $dto): Supply {
             $this->supplyRepository->update($supply, $dto->toArray());
 
@@ -95,6 +121,10 @@ class SupplyService
     {
         $supply = $this->findById($id);
 
+        if ($supply->is_active) {
+            $this->ensureCanDeactivate($supply);
+        }
+
         return $this->supplyRepository->update($supply, [
             'is_active' => ! $supply->is_active,
         ]);
@@ -112,12 +142,12 @@ class SupplyService
 
                 // Increment stock using repository update
                 $this->supplyRepository->update($supply, [
-                    'stock' => $supply->stock + (float) $item['quantity']
+                    'stock' => $supply->stock + (float) $item['quantity'],
                 ]);
 
                 // Sync/Update pivot price
                 $supply->suppliers()->syncWithoutDetaching([
-                    $supplierId => ['purchase_price' => (float) $item['purchase_price']]
+                    $supplierId => ['purchase_price' => (float) $item['purchase_price']],
                 ]);
             }
         });

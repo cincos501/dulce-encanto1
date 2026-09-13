@@ -30,6 +30,7 @@ import ReportsDashboard from '@/modules/reports/pages/ReportsDashboard'
 import ProtectedRoute from '@/shared/components/ProtectedRoute'
 import AdminLayout from '@/app/layouts/AdminLayout'
 import SplashScreen from '@/shared/components/SplashScreen'
+import PWAInstallBanner from '@/shared/components/PWAInstallBanner'
 import '@/App.css'
 import React, { useState, useEffect } from 'react'
 
@@ -50,6 +51,7 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <CartProvider>
+            <PWAInstallBanner />
             <SplashScreen isLoading={showSplash} />
             <BrowserRouter>
               <Routes>

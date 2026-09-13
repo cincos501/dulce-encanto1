@@ -37,7 +37,8 @@ export default function PublicOrderHistory() {
 
   const fetchHistory = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/orders/history/${phoneToken}`)
+      const baseUrl = ((import.meta.env.VITE_API_URL as string) || 'http://localhost:8000').replace(/\/+$/, '')
+      const response = await axios.get(`${baseUrl}/api/v1/orders/history/${phoneToken}`)
       if (response.data?.success) {
         setCustomer(response.data.data.customer)
         setOrders(response.data.data.orders || [])

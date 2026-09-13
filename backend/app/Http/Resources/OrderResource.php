@@ -21,10 +21,14 @@ class OrderResource extends JsonResource
         return [
             'id' => $this->id,
             'status' => $this->status,
+            'payment_status' => $this->payment_status ?? 'Pendiente',
             'production_stage' => $this->production_stage ?? 'Programado',
             'qr_id' => $pendingPayment?->transaction_code,
             'total' => (float) $this->total,
             'delivery_date' => $this->delivery_date?->toIso8601String(),
+            'delivery_type' => $this->delivery_type ?? 'RECOJO_TIENDA',
+            'delivery_address' => $this->delivery_address,
+            'delivery_notes' => $this->delivery_notes,
             'customer' => [
                 'id' => $this->customer?->id,
                 'full_name' => $this->customer?->full_name ?? 'Cliente Anónimo',

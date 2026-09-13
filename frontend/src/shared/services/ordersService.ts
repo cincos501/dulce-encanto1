@@ -11,11 +11,26 @@ export interface OrderItem {
   total: number;
 }
 
+export type OrderStatus =
+  | 'Pendiente'
+  | 'Confirmado'
+  | 'En preparación'
+  | 'Decorando'
+  | 'Listo'
+  | 'Entregado'
+  | 'Cancelado';
+
 export interface Order {
   id: number;
-  status: 'Pendiente' | 'En preparación' | 'Decorando' | 'Listo' | 'Entregado' | 'Cancelado';
+  status: OrderStatus;
+  payment_status?: string;
+  production_stage?: string;
+  qr_id?: string | null;
   total: number;
   delivery_date: string | null;
+  delivery_type?: string;
+  delivery_address?: string | null;
+  delivery_notes?: string | null;
   customer: {
     id: number | null;
     full_name: string;

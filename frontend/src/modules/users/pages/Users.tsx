@@ -14,10 +14,11 @@ import { Badge, Button, Input, Label, Tooltip } from '@/design-system'
 import usersService, { UserInput } from '@/shared/services/usersService'
 import { useAuthorization } from '@/shared/hooks/useAuthorization'
 import { User } from '@/shared/types'
-import { FiEdit2, FiKey } from 'react-icons/fi'
+import { FiEdit2, FiInfo } from 'react-icons/fi'
 import { cn } from '@/shared/utils/cn'
 import { handleApiError } from '@/shared/utils/formErrors'
 import { normalizePhone } from '@/shared/utils/phone'
+import { toast } from 'sonner'
 
 const ROLES_LIST = [
   'Administrador',
@@ -25,6 +26,13 @@ const ROLES_LIST = [
   'Encargado de Operaciones y Suministros',
   'Encargado Comercial'
 ]
+
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  'Administrador': 'Acceso total al sistema: administración de tienda, personal, reportes y catálogo.',
+  'Repostero': 'Gestión del recetario, catálogo de producción y actualización del estado de horneado.',
+  'Encargado de Operaciones y Suministros': 'Administración de insumos, proveedores, registro de compras y control de stock mínimo.',
+  'Encargado Comercial': 'Gestión comercial de ventas, promociones, clientes y confirmación de pedidos.'
+}
 
 const createUserSchema = z.object({
   full_name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.').max(100, 'El nombre no puede superar los 100 caracteres.'),
@@ -43,17 +51,12 @@ const editUserSchema = z.object({
   is_active: z.boolean().default(true)
 })
 
-const resetPasswordSchema = z.object({
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.')
-})
-
 type CreateUserFormInputs = z.infer<typeof createUserSchema>
 type EditUserFormInputs = z.infer<typeof editUserSchema>
-type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>
 
 export default function Users() {
   const queryClient = useQueryClient()
-  const { user: currentUser, hasPermission } = useAuthorization()
+  const { user: currentUser } = useAuthorization()
 
   // Local state for pagination/filters
   const [search, setSearch] = useState<string>('')
@@ -65,11 +68,9 @@ export default function Users() {
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [isResetOpen, setIsResetOpen] = useState<boolean>(false)
-  const [userForReset, setUserForReset] = useState<User | null>(null)
 
   // React Hook Forms
-  const createForm = useForm<CreateUserFormInputs>({
+  const createForm = useForm({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
       full_name: '',
@@ -81,7 +82,7 @@ export default function Users() {
     }
   })
 
-  const editForm = useForm<EditUserFormInputs>({
+  const editForm = useForm({
     resolver: zodResolver(editUserSchema),
     defaultValues: {
       full_name: '',
@@ -89,13 +90,6 @@ export default function Users() {
       phone: '',
       role: '',
       is_active: true
-    }
-  })
-
-  const resetForm = useForm<ResetPasswordFormInputs>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      password: ''
     }
   })
 
@@ -170,19 +164,6 @@ export default function Users() {
     onError: (err: any) => {
       const activeForm = editingUser ? editForm : createForm
       handleApiError(err, activeForm.setError, 'Error al guardar el usuario.')
-    }
-  })
-
-  const resetPasswordMutation = useMutation({
-    mutationFn: ({ id, pass }: { id: number; pass: string }) => usersService.resetPassword(id, { password: pass }),
-    onSuccess: () => {
-      toast.success('Contraseña reestablecida con éxito.')
-      setIsResetOpen(false)
-      setUserForReset(null)
-      resetForm.reset()
-    },
-    onError: (err: any) => {
-      handleApiError(err, resetForm.setError, 'Error al actualizar contraseña.')
     }
   })
 
@@ -304,23 +285,13 @@ export default function Users() {
             ) : (
               editButton
             )}
-            <Button
-              variant="info"
-              size="sm"
-              onClick={() => {
-                setUserForReset(item)
-                setIsResetOpen(true)
-              }}
-              className="inline-flex items-center gap-1.5"
-            >
-              <FiKey className="text-xs" />
-              <span>Clave</span>
-            </Button>
           </div>
         )
       }
     }
   ]
+
+  const selectedRole = editingUser ? editForm.watch('role') : createForm.watch('role')
 
   const createFields = [
     {
@@ -453,6 +424,15 @@ export default function Users() {
           onClose={closeFormModal}
           title={editingUser ? 'Editar Integrante' : 'Nuevo Integrante'}
         >
+          {selectedRole && ROLE_DESCRIPTIONS[selectedRole] && (
+            <div className="mb-4 p-3 rounded-lg bg-stone-100/80 border border-stone-200 text-xs text-stone-700 flex items-start gap-2.5">
+              <FiInfo className="text-primary text-base shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-primary block mb-0.5">Rol {selectedRole}:</span>
+                <span>{ROLE_DESCRIPTIONS[selectedRole]}</span>
+              </div>
+            </div>
+          )}
           {editingUser ? (
             <CrudForm
               fields={editFields}
@@ -470,51 +450,6 @@ export default function Users() {
               isPending={saveMutation.isPending}
             />
           )}
-        </CrudModal>
-      )}
-
-      {/* PASSWORD RESET DIALOG */}
-      {isResetOpen && (
-        <CrudModal
-          isOpen={isResetOpen}
-          onClose={() => setIsResetOpen(false)}
-          title="Cambiar Contraseña"
-        >
-          <form 
-            onSubmit={resetForm.handleSubmit((data) => {
-              if (userForReset) {
-                resetPasswordMutation.mutate({ id: userForReset.id, pass: data.password })
-              }
-            })} 
-            className="space-y-5"
-          >
-            <div className="space-y-1.5">
-              <Label htmlFor="reset_pass">Nueva Contraseña</Label>
-              <Input
-                id="reset_pass"
-                type="password"
-                placeholder="Mínimo 6 caracteres"
-                error={resetForm.formState.errors.password?.message}
-                {...resetForm.register('password')}
-              />
-            </div>
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/60">
-              <Button
-                type="button"
-                variant="neutral"
-                onClick={() => setIsResetOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                isLoading={resetPasswordMutation.isPending}
-              >
-                Guardar Contraseña
-              </Button>
-            </div>
-          </form>
         </CrudModal>
       )}
     </CrudPage>

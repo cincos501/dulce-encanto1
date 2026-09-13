@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Baneco\Http\Controllers\BanecoWebhookController;
+use App\Http\Controllers\Api\Webhooks\ChatwootWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -12,6 +14,14 @@ Route::prefix('v1')->group(function () {
     Route::get('/catalog/promotions', [CatalogController::class, 'promotions'])->name('catalog.promotions');
     Route::get('/catalog/{id}', [CatalogController::class, 'show'])->name('catalog.show');
     Route::post('/checkout', [OrderController::class, 'store'])->name('checkout.store');
+
+    // Public QR Payment details endpoint
+    Route::get('/payments/qr/{qrId}', [PublicPaymentController::class, 'show'])
+        ->name('payments.qr.show');
+
+    // Public Order History endpoint
+    Route::get('/orders/history/{phoneToken}', [PublicOrderHistoryController::class, 'show'])
+        ->name('orders.history.show');
 
     Route::prefix('auth')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
@@ -140,7 +150,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/products', [ReportController::class, 'products'])->name('reports.products');
             Route::get('/supplies', [ReportController::class, 'supplies'])->name('reports.supplies');
             Route::get('/production', [ReportController::class, 'production'])->name('reports.production');
-            
+
             Route::get('/sales/export-excel', [ReportController::class, 'exportSalesExcel'])->name('reports.sales.excel');
             Route::get('/sales/export-pdf', [ReportController::class, 'exportSalesPdf'])->name('reports.sales.pdf');
             Route::get('/products/export-excel', [ReportController::class, 'exportProductsExcel'])->name('reports.products.excel');
@@ -154,17 +164,15 @@ Route::prefix('v1')->group(function () {
 });
 
 // Chatwoot Webhook endpoint (public with token validation in Request)
-Route::post('/webhooks/chatwoot', [\App\Http\Controllers\Api\Webhooks\ChatwootWebhookController::class, 'handle'])
+Route::post('/webhooks/chatwoot', [ChatwootWebhookController::class, 'handle'])
     ->name('webhooks.chatwoot');
 
 // Baneco Webhook endpoint (public)
-Route::post('/webhooks/baneco/payment', [\App\Baneco\Http\Controllers\BanecoWebhookController::class, 'notifyPaymentQR'])
+Route::post('/webhooks/baneco/payment', [BanecoWebhookController::class, 'notifyPaymentQR'])
     ->name('webhooks.baneco.payment');
 
-// Public QR Payment details endpoint
-Route::get('/payments/qr/{qrId}', [\App\Http\Controllers\Api\V1\PublicPaymentController::class, 'show'])
-    ->name('payments.qr.show');
+// Public QR Payment details endpoint (without v1 prefix fallback)
+Route::get('/payments/qr/{qrId}', [PublicPaymentController::class, 'show']);
 
-// Public Order History endpoint
-Route::get('/orders/history/{phoneToken}', [\App\Http\Controllers\Api\V1\PublicOrderHistoryController::class, 'show'])
-    ->name('orders.history.show');
+// Public Order History endpoint (without v1 prefix fallback)
+Route::get('/orders/history/{phoneToken}', [PublicOrderHistoryController::class, 'show']);

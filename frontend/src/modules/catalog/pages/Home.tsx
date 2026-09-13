@@ -89,17 +89,17 @@ export default function Home() {
   }
 
   const chooseUs = [
-    { title: 'Ingredientes 100% Frescos', desc: 'Frutas frescas del día, chocolates belgas selectos y mantequilla premium pura.', icon: FiStar },
+    { title: 'Ingredientes 100% Frescos', desc: 'Frutas frescas del día, chocolates belgas selectos y mantequilla pura.', icon: FiStar },
     { title: 'Reposteros Expertos', desc: 'Decoraciones artísticas de alta costura y sabores balanceados.', icon: FiAward },
     { title: 'Detalles Personalizados', desc: 'Elaboramos y ajustamos las recetas según tus preferencias y restricciones.', icon: FiHeart },
-    { title: 'Higiene y Calidad Superior', desc: 'Estrictos protocolos de inocuidad y empaques premium seguros.', icon: FiSmile }
+    { title: 'Higiene y Calidad Superior', desc: 'Estrictos protocolos de inocuidad y empaques seguros.', icon: FiSmile }
   ]
 
   const categoriesGrid = [
     { name: 'Tortas Personalizadas', desc: 'Diseños decorados con fondant o buttercream.', icon: FiGift },
     { name: 'Postres Individuales', desc: 'Cheesecakes, brownies, cookies y tartaletas.', icon: FiCoffee },
     { name: 'Bocaditos Gourmet', desc: 'Bocaditos dulces y salados para mesas de dulces.', icon: FiTrendingUp },
-    { name: 'Panes Artesanales', desc: 'Panes dulces tradicionales recién horneados.', icon: FiSmile }
+    { name: 'Panes Tradicionales', desc: 'Panes dulces tradicionales recién horneados.', icon: FiSmile }
   ]
 
   const occasions = [
@@ -125,10 +125,6 @@ export default function Home() {
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="max-w-2xl space-y-6 text-left">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] uppercase font-bold tracking-widest bg-secondary/15 text-primary border border-secondary/30 select-none">
-                <FiStar className="text-xs text-amber-500" />
-                <span>Repostería Premium Artesanal</span>
-              </span>
               <Typography variant="h1" className="text-4xl sm:text-5xl lg:text-6xl font-black text-primary leading-tight tracking-tight">
                 Horneamos felicidad <br />
                 <span className="text-stone-700 dark:text-stone-300">
@@ -146,7 +142,7 @@ export default function Home() {
                   Ver Catálogo
                 </Link>
                 <a
-                  href="https://wa.me/59170012345"
+                  href="https://wa.me/59177872032"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3.5 rounded-lg font-bold transition-all duration-200 active:scale-95 text-xs uppercase tracking-wider font-sans"
@@ -220,7 +216,7 @@ export default function Home() {
                       </h3>
                       {showPromotions && (
                         <div className="inline-block">
-                          <Badge variant="error" className="font-bold text-[10px] tracking-wide py-1 px-2.5">
+                          <Badge variant="danger" className="font-bold text-[10px] tracking-wide py-1 px-2.5">
                             {carouselItems[carouselIndex].discount_type === 'percentage'
                               ? `${Number(carouselItems[carouselIndex].discount).toFixed(0)}% DESCUENTO`
                               : `Bs. ${Number(carouselItems[carouselIndex].discount).toFixed(0)} DESCUENTO`}
@@ -416,7 +412,7 @@ export default function Home() {
                   <div className="space-y-3 text-xs leading-none">
                     <div className="flex items-center gap-2.5">
                       <FiMapPin className="text-primary text-sm shrink-0" />
-                      <span className="text-text-sub font-semibold">Equipetrol Calle 8 Este, Santa Cruz de la Sierra</span>
+                      <span className="text-text-sub font-semibold">Avenida Circunvalación, Barrio Carlos Wagner, Av. Los Crespones, Tarija</span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <FiClock className="text-primary text-sm shrink-0" />
@@ -424,7 +420,7 @@ export default function Home() {
                     </div>
                     <div className="flex items-center gap-2.5">
                       <FaWhatsapp className="text-emerald-600 text-sm shrink-0" />
-                      <span className="text-text-sub font-semibold">+591 700 12345 (Atención Inmediata)</span>
+                      <span className="text-text-sub font-semibold">+591 77872032 (Atención Inmediata)</span>
                     </div>
                   </div>
                 </div>
@@ -432,7 +428,7 @@ export default function Home() {
                 {/* Actions */}
                 <div className="md:col-span-5 flex flex-col gap-3">
                   <a
-                    href="https://wa.me/59170012345"
+                    href="https://wa.me/59177872032"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-lg text-xs uppercase tracking-wider font-sans shadow-md hover:shadow-lg transition-all"
@@ -441,7 +437,7 @@ export default function Home() {
                     <span>Escríbenos por WhatsApp</span>
                   </a>
                   <a
-                    href="https://goo.gl/maps/example"
+                    href="https://maps.google.com/?q=-21.50631914541871,-64.75171651298785"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full inline-flex items-center justify-center gap-2 bg-background hover:bg-stone-50 border border-border text-primary font-bold py-3.5 rounded-lg text-xs uppercase tracking-wider font-sans shadow-sm hover:shadow transition-all"

@@ -34,13 +34,14 @@ export default function Categories() {
   const [search, setSearch] = useState<string>('')
   const [page, setPage] = useState<number>(1)
   const perPage = 10
+  const [statusFilter, setStatusFilter] = useState<string>('')
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
 
   // React Hook Form
-  const form = useForm<CategoryFormInputs>({
+  const form = useForm({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
@@ -88,7 +89,15 @@ export default function Categories() {
     }
   })
 
-  const categories = (queryData?.data as Category[]) || []
+  const rawCategories = (queryData?.data as Category[]) || []
+  const categories = [...rawCategories]
+    .filter(cat => {
+      if (statusFilter === 'active') return cat.is_active
+      if (statusFilter === 'inactive') return !cat.is_active
+      return true
+    })
+    .sort((a, b) => (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1))
+
   const pagination = queryData?.meta || { current_page: 1, last_page: 1, total: 0 }
 
   // Mutations
@@ -241,6 +250,17 @@ export default function Categories() {
       search={search}
       onSearchChange={(val) => { setSearch(val); setPage(1); }}
       searchPlaceholder="Buscar por nombre o descripción..."
+      extraActions={
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="px-4 py-2.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-stone-200 outline-none text-xs text-text-main bg-surface font-semibold"
+        >
+          <option value="">-- Todos los estados --</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+      }
     >
       <CrudTable
         data={categories}

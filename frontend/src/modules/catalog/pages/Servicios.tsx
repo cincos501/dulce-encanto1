@@ -24,17 +24,17 @@ export default function Servicios() {
       services: [
         { name: 'Tortas Personalizadas', desc: 'Diseños a medida adaptados a tu paleta de colores y estilo decorativo preferido.', icon: FiGift },
         { name: 'Tortas Temáticas', desc: 'Creaciones artísticas inspiradas en personajes, hobbies, profesiones y más.', icon: FiAward },
-        { name: 'Cheesecakes Premium', desc: 'Deliciosos e increíbles pays de queso con base crujiente y toppings de frutos selectos.', icon: FiStar },
+        { name: 'Cheesecakes Especiales', desc: 'Deliciosos e increíbles pays de queso con base crujiente y toppings de frutos selectos.', icon: FiStar },
         { name: 'Cupcakes Decorados', desc: 'Pequeñas porciones llenas de detalles y crema suave para compartir individualmente.', icon: FiHexagon }
       ]
     },
     {
-      title: 'Bocados & Panadería Artesanal',
+      title: 'Bocados & Panadería',
       services: [
         { name: 'Brownies & Blondies', desc: 'Caldosos por dentro y con costra perfecta, elaborados con cacao de origen puro.', icon: FiHeart },
         { name: 'Galletas de Especialidad', desc: 'Galletas de mantequilla decoradas o galletas rellenas horneadas al día.', icon: FiCoffee },
-        { name: 'Donas Horneadas', desc: 'Esponjosas y con glaseados artesanales libres de grasas saturadas.', icon: FiGrid },
-        { name: 'Panes Artesanales', desc: 'Budines, panes de masa madre y panadería dulce clásica para desayunos gourmet.', icon: FiSmile }
+        { name: 'Donas Horneadas', desc: 'Esponjosas y con glaseados caseros libres de grasas saturadas.', icon: FiGrid },
+        { name: 'Panes Tradicionales', desc: 'Budines, panes de masa madre y panadería dulce clásica para desayunos.', icon: FiSmile }
       ]
     },
     {

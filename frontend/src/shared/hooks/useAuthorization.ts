@@ -37,6 +37,7 @@ export function useAuthorization() {
   }
 
   return {
+    user,
     hasRole,
     hasAnyRole,
     hasPermission,

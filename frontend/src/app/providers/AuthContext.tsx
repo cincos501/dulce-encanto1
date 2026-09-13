@@ -50,16 +50,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<User> => {
     setLoading(true)
     try {
-      // 1. Get CSRF Cookie
-      await authService.csrfCookie()
+      // 1. Get CSRF Cookie (for stateful session support)
+      try {
+        await authService.csrfCookie()
+      } catch (e) {
+        // Fallback for cross-domain environments
+      }
+
       // 2. Perform Login Request
-      await authService.login(email, password)
+      const loginRes = (await authService.login(email, password)) as any
+      const token = loginRes?.data?.token || loginRes?.data?.data?.token
+      if (token) {
+        localStorage.setItem('auth_token', token)
+      }
+
       // 3. Get Authenticated User Details
       const response = await authService.me()
       const loggedUser = response.data.data
       setUser(loggedUser)
       return loggedUser
     } catch (err) {
+      localStorage.removeItem('auth_token')
       setUser(null)
       throw err
     } finally {
@@ -74,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       // Allow local logout anyway
     } finally {
+      localStorage.removeItem('auth_token')
       setUser(null)
       setLoading(false)
     }

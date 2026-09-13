@@ -1,7 +1,7 @@
 import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000',
+  baseURL: ((import.meta.env.VITE_API_URL as string) || 'http://localhost:8000').replace(/\/+$/, ''),
   withCredentials: true,
   headers: {
     'X-Requested-With': 'XMLHttpRequest',
@@ -10,7 +10,7 @@ const api = axios.create({
   }
 })
 
-// Request Interceptor: Inject X-XSRF-TOKEN header from cookie
+// Request Interceptor: Inject X-XSRF-TOKEN header and Bearer token
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const xsrfCookie = document.cookie
     .split('; ')
@@ -20,6 +20,12 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const token = decodeURIComponent(xsrfCookie.split('=')[1])
     config.headers['X-XSRF-TOKEN'] = token
   }
+
+  const authToken = localStorage.getItem('auth_token')
+  if (authToken && config.headers) {
+    config.headers['Authorization'] = `Bearer ${authToken}`
+  }
+
   return config
 }, (error) => {
   return Promise.reject(error)
@@ -86,6 +92,7 @@ api.interceptors.response.use(
 
     // 2. Handle 401 Unauthorized / Expelled
     if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token')
       if (window.__logoutHandler) {
         window.__logoutHandler()
       }

@@ -68,13 +68,9 @@
         <tbody>
             @foreach($orders as $o)
                 @php
-                    $deliveryDetails = ['delivery_type' => 'Retiro en tienda', 'address' => '', 'observations' => ''];
-                    $email = $o->customer?->email;
-                    if ($email && str_starts_with(trim($email), '{')) {
-                        $parsed = json_decode($email, true);
-                        if (is_array($parsed)) {
-                            $deliveryDetails['delivery_type'] = $parsed['delivery_type'] ?? 'Retiro en tienda';
-                        }
+                    $deliveryType = $o->delivery_type ?? 'Retiro en tienda';
+                    if ($deliveryType === 'RECOJO_TIENDA') {
+                        $deliveryType = 'Retiro en tienda';
                     }
                 @endphp
                 <tr>
@@ -83,7 +79,7 @@
                     <td>{{ $o->customer?->full_name ?? 'Cliente Anónimo' }}</td>
                     <td style="text-align: center; font-weight: bold;">{{ $o->items->sum('quantity') }}</td>
                     <td style="font-weight: bold; color: #851c36;">{{ $o->status }}</td>
-                    <td>{{ $deliveryDetails['delivery_type'] }}</td>
+                    <td>{{ $deliveryType }}</td>
                 </tr>
             @endforeach
         </tbody>

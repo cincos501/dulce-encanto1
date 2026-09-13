@@ -23,6 +23,7 @@ export default function Recipes() {
   const [search, setSearch] = useState<string>('')
   const [page, setPage] = useState<number>(1)
   const perPage = 10
+  const [statusFilter, setStatusFilter] = useState<string>('')
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
@@ -49,7 +50,14 @@ export default function Recipes() {
     }
   })
 
-  const recipes = (queryData?.data as Recipe[]) || []
+  const rawRecipes = (queryData?.data as Recipe[]) || []
+  const recipes = [...rawRecipes]
+    .filter(r => {
+      if (statusFilter === 'active') return r.is_active
+      if (statusFilter === 'inactive') return !r.is_active
+      return true
+    })
+    .sort((a, b) => (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1))
   const pagination = queryData?.meta || { current_page: 1, last_page: 1, total: 0 }
   const activeSupplies = (suppliesData as Supply[]) || []
 
@@ -259,6 +267,17 @@ export default function Recipes() {
       search={search}
       onSearchChange={(val) => { setSearch(val); setPage(1); }}
       searchPlaceholder="Buscar por producto, presentación o SKU..."
+      extraActions={
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="px-4 py-2.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-stone-200 outline-none text-xs text-text-main bg-surface font-semibold"
+        >
+          <option value="">-- Todos los estados --</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+      }
     >
       <CrudTable
         data={recipes}
@@ -367,7 +386,7 @@ export default function Recipes() {
                             placeholder="0.00"
                             value={item.quantity || ''}
                             onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
-                            error={!!backendErrors[qtyErrKey]}
+                            error={backendErrors[qtyErrKey]}
                             disabled={!hasPermission('recipes.update')}
                             className="pr-10"
                             required
@@ -376,11 +395,6 @@ export default function Recipes() {
                             {item.unit}
                           </span>
                         </div>
-                        {backendErrors[qtyErrKey] && (
-                          <span className="text-[10px] text-red-500 font-semibold pl-1">
-                            {backendErrors[qtyErrKey]}
-                          </span>
-                        )}
                       </div>
 
                       {/* Observation */}
@@ -391,7 +405,7 @@ export default function Recipes() {
                           placeholder="Ej. Cernir antes de pesar, trocear..."
                           value={item.observation || ''}
                           onChange={(e) => handleObservationChange(index, e.target.value)}
-                          error={!!backendErrors[obsErrKey]}
+                          error={backendErrors[obsErrKey]}
                           disabled={!hasPermission('recipes.update')}
                         />
                       </div>

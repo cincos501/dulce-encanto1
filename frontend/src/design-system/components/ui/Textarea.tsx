@@ -1,17 +1,26 @@
 import React from 'react'
 import { cn } from '@/shared/utils/cn'
 import { HelperText } from './HelperText'
+import { Label } from './Label'
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string;
+  label?: React.ReactNode;
 }
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, error, ...props }, ref) => {
+  ({ className, error, label, id, required, ...props }, ref) => {
     return (
       <div className="space-y-1 w-full">
+        {label && (
+          <Label htmlFor={id} required={required} className="text-xs">
+            {label}
+          </Label>
+        )}
         <textarea
           ref={ref}
+          id={id}
+          required={required}
           className={cn(
             'w-full px-4 py-2.5 rounded-lg bg-surface border text-text-main text-xs transition-all duration-200 resize-none disabled:bg-stone-50 disabled:text-text-sub/50 outline-none',
             error

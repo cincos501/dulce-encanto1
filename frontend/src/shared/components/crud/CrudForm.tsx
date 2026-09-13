@@ -4,8 +4,8 @@ import { Button } from '@/design-system'
 
 export interface CrudFormProps<TFieldValues extends FieldValues = FieldValues> {
   fields: CrudFieldDef[];
-  form: UseFormReturn<TFieldValues>;
-  onSubmit: (data: TFieldValues) => void;
+  form: UseFormReturn<TFieldValues, any, any>;
+  onSubmit: (data: any) => void;
   onCancel: () => void;
   submitLabel?: string;
   cancelLabel?: string;

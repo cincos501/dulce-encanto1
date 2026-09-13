@@ -94,7 +94,10 @@ class ConfirmOrderDraftTool implements ToolInterface
 
         // 3. Parse and validate delivery date and time
         try {
-            $requestedDateTime = Carbon::createFromFormat('Y-m-d H:i', "{$deliveryDate} {$deliveryTime}");
+            $combined = trim("{$deliveryDate} {$deliveryTime}");
+            $requestedDateTime = Carbon::parse($combined);
+            $deliveryDate = $requestedDateTime->format('Y-m-d');
+            $deliveryTime = $requestedDateTime->format('H:i');
         } catch (\Throwable $e) {
             return "Error: Formato de fecha u hora inválido. Asegúrese de ingresar la fecha en formato AAAA-MM-DD y la hora en formato HH:MM.";
         }

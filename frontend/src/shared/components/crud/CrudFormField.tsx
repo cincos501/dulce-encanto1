@@ -1,4 +1,4 @@
-import { UseFormRegister, FieldValues } from 'react-hook-form'
+import { UseFormRegister } from 'react-hook-form'
 import { Input, Textarea, Select, Checkbox, Switch, Label, HelperText } from '@/design-system'
 
 export interface CrudFieldOption {
@@ -17,17 +17,17 @@ export interface CrudFieldDef {
   step?: string;
 }
 
-export interface CrudFormFieldProps<TFieldValues extends FieldValues = FieldValues> {
+export interface CrudFormFieldProps {
   field: CrudFieldDef;
-  register: UseFormRegister<TFieldValues>;
+  register: UseFormRegister<any>;
   error?: string;
 }
 
-export function CrudFormField<TFieldValues extends FieldValues = FieldValues>({ 
-  field, 
-  register, 
-  error 
-}: CrudFormFieldProps<TFieldValues>) {
+export function CrudFormField({
+  field,
+  register,
+  error
+}: CrudFormFieldProps) {
   const { name, label, type, placeholder, options = [], required = false, disabled = false, step } = field
 
   return (

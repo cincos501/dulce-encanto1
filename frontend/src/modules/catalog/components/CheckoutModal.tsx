@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from 'sonner'
-import { 
-  Button, 
-  Input, 
-  Textarea, 
-  Badge, 
-  Typography, 
-  Modal 
+import {
+  Button,
+  Input,
+  Textarea,
+  Badge,
+  Typography,
+  Modal
 } from '@/design-system'
 import { useCart } from '@/app/providers/CartContext'
 import ordersService from '@/shared/services/ordersService'
@@ -50,7 +50,7 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const navigate = useNavigate()
-  const hasMadeToOrder = cartItems.some(item => 
+  const hasMadeToOrder = cartItems.some(item =>
     item.sale_type !== 'READY_STOCK'
   )
 
@@ -105,7 +105,7 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
       const diffHours = diffMs / (1000 * 60 * 60)
 
       if (diffHours < 24) {
-        toast.error('Los productos bajo pedido requieren un mínimo de 24 horas de anticipación para su preparación artesanal. Por favor elige otra fecha u hora.')
+        toast.error('Los productos bajo pedido requieren un mínimo de 24 horas de anticipación para su preparación. Por favor elige otra fecha u hora.')
         return
       }
     }
@@ -165,40 +165,34 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
         {/* STEPPER HEADER */}
         <div className="flex items-center justify-center gap-2 border-b border-border pb-4 select-none">
           <div className="flex items-center gap-1.5">
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-              step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-stone-200 text-stone-600'
-            }`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-stone-200 text-stone-600'
+              }`}>
               1
             </span>
-            <span className={`text-[10px] uppercase font-bold tracking-wider ${
-              step === 1 ? 'text-primary' : 'text-text-sub'
-            }`}>
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${step === 1 ? 'text-primary' : 'text-text-sub'
+              }`}>
               Productos
             </span>
           </div>
           <span className="h-px bg-stone-200 w-10" />
           <div className="flex items-center gap-1.5">
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-              step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-stone-200 text-stone-600'
-            }`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-stone-200 text-stone-600'
+              }`}>
               2
             </span>
-            <span className={`text-[10px] uppercase font-bold tracking-wider ${
-              step === 2 ? 'text-primary' : 'text-text-sub'
-            }`}>
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${step === 2 ? 'text-primary' : 'text-text-sub'
+              }`}>
               Datos de Entrega
             </span>
           </div>
           <span className="h-px bg-stone-200 w-10" />
           <div className="flex items-center gap-1.5">
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-              step >= 3 ? 'bg-primary text-primary-foreground' : 'bg-stone-200 text-stone-600'
-            }`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step >= 3 ? 'bg-primary text-primary-foreground' : 'bg-stone-200 text-stone-600'
+              }`}>
               3
             </span>
-            <span className={`text-[10px] uppercase font-bold tracking-wider ${
-              step === 3 ? 'text-primary' : 'text-text-sub'
-            }`}>
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${step === 3 ? 'text-primary' : 'text-text-sub'
+              }`}>
               Confirmación
             </span>
           </div>
@@ -247,15 +241,15 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                             <td className="p-3">
                               <div className="flex items-center gap-3">
                                 {item.image_url ? (
-                                  <img 
-                                    src={item.image_url} 
-                                    alt={item.product_name} 
+                                  <img
+                                    src={item.image_url}
+                                    alt={item.product_name}
                                     className="w-10 h-10 object-cover rounded-md border border-border"
                                   />
                                 ) : (
-                                  <img 
-                                    src={productPlaceholder} 
-                                    alt={item.product_name} 
+                                  <img
+                                    src={productPlaceholder}
+                                    alt={item.product_name}
                                     className="w-10 h-10 object-cover rounded-md border border-border"
                                   />
                                 )}
@@ -364,11 +358,10 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     onClick={() => {
                       register('delivery_type').onChange({ target: { name: 'delivery_type', value: 'Retiro en tienda' } })
                     }}
-                    className={`flex-1 py-3 px-4 rounded-lg border font-bold text-xs text-center transition-all ${
-                      deliveryType === 'Retiro en tienda'
-                        ? 'border-primary bg-secondary/15 ring-1 ring-primary text-primary'
-                        : 'border-border hover:border-stone-400 bg-surface text-text-sub'
-                    }`}
+                    className={`flex-1 py-3 px-4 rounded-lg border font-bold text-xs text-center transition-all ${deliveryType === 'Retiro en tienda'
+                      ? 'border-primary bg-secondary/15 ring-1 ring-primary text-primary'
+                      : 'border-border hover:border-stone-400 bg-surface text-text-sub'
+                      }`}
                   >
                     Retiro en Tienda
                   </button>
@@ -377,11 +370,10 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     onClick={() => {
                       register('delivery_type').onChange({ target: { name: 'delivery_type', value: 'Delivery' } })
                     }}
-                    className={`flex-1 py-3 px-4 rounded-lg border font-bold text-xs text-center transition-all ${
-                      deliveryType === 'Delivery'
-                        ? 'border-primary bg-secondary/15 ring-1 ring-primary text-primary'
-                        : 'border-border hover:border-stone-400 bg-surface text-text-sub'
-                    }`}
+                    className={`flex-1 py-3 px-4 rounded-lg border font-bold text-xs text-center transition-all ${deliveryType === 'Delivery'
+                      ? 'border-primary bg-secondary/15 ring-1 ring-primary text-primary'
+                      : 'border-border hover:border-stone-400 bg-surface text-text-sub'
+                      }`}
                   >
                     Delivery / Despacho
                   </button>
@@ -433,7 +425,7 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     <FiInfo className="text-sm" />
                     <span>Costo de Despacho</span>
                   </div>
-                  <p>El costo del envío **no está incluido** en el total de la compra. Se pagará directamente al repartidor al momento de recibir el pedido.</p>
+                  <p>El costo del envío no está incluido en el total de la compra. Se pagará directamente al repartidor al momento de recibir el pedido.</p>
                 </div>
               )}
 
@@ -548,8 +540,8 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                   <span className="text-[9px] text-text-sub font-bold uppercase tracking-wider block">Total General</span>
                   <span className="font-heading font-black text-lg text-primary">Bs. {cartSubtotal.toFixed(2)}</span>
                 </div>
-                <Button 
-                  onClick={handleSubmit(onSubmit)} 
+                <Button
+                  onClick={handleSubmit(onSubmit)}
                   disabled={isSubmitting}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 font-bold uppercase tracking-wider text-xs px-6"
                 >

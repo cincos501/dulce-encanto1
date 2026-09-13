@@ -1,19 +1,28 @@
 import React from 'react'
 import { cn } from '@/shared/utils/cn'
 import { HelperText } from './HelperText'
+import { Label } from './Label'
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   suffix?: React.ReactNode;
+  label?: React.ReactNode;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, suffix, ...props }, ref) => {
+  ({ className, error, suffix, label, id, required, ...props }, ref) => {
     return (
       <div className="space-y-1 w-full">
+        {label && (
+          <Label htmlFor={id} required={required} className="text-xs">
+            {label}
+          </Label>
+        )}
         <div className="relative flex items-center w-full">
           <input
             ref={ref}
+            id={id}
+            required={required}
             className={cn(
               'w-full px-4 py-2.5 rounded-lg bg-surface border text-text-main text-xs transition-all duration-200 disabled:bg-stone-50 disabled:text-text-sub/50 outline-none',
               error

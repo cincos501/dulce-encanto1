@@ -10,8 +10,8 @@ export interface CrudPageProps {
   onCreateClick?: () => void;
   
   // Search
-  search: string;
-  onSearchChange: (value: string) => void;
+  search?: string;
+  onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   
   // Optional filters

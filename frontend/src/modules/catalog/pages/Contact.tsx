@@ -7,10 +7,10 @@ import { FaWhatsapp, FaTiktok } from 'react-icons/fa'
 
 export default function Contact() {
   const contactsInfo = [
-    { title: 'WhatsApp Principal', detail: '+591 700 12345', icon: FaWhatsapp, subtitle: 'Pedidos y Consultas rápidas' },
-    { title: 'Teléfono Fijo', detail: '+591 3 344 5566', icon: FiPhone, subtitle: 'Atención en sucursal' },
+    { title: 'WhatsApp Principal', detail: '+591 77872032', icon: FaWhatsapp, subtitle: 'Pedidos y Consultas directas' },
+    { title: 'Chatbot WhatsApp', detail: '+591 64300218', icon: FiPhone, subtitle: 'Atención automatizada 24/7' },
     { title: 'Correo Electrónico', detail: 'contacto@dulceencanto.bo', icon: FiMail, subtitle: 'Eventos y Cotizaciones corporativas' },
-    { title: 'Dirección Sucursal Central', detail: 'Equipetrol Calle 8 Este, Santa Cruz de la Sierra, Bolivia', icon: FiMapPin, subtitle: 'Ven a visitarnos' },
+    { title: 'Dirección Sucursal Central', detail: 'Avenida Circunvalación, Barrio Carlos Wagner, Av. Los Crespones, Tarija, Bolivia', icon: FiMapPin, subtitle: 'Ven a visitarnos' },
     { title: 'Horarios de Atención', detail: 'Martes a Domingo: 9:00 AM - 8:00 PM', icon: FiClock, subtitle: 'Lunes Cerrado' }
   ]
 
@@ -97,7 +97,7 @@ export default function Contact() {
                 </p>
               </div>
               <a 
-                href="https://wa.me/59170012345" 
+                href="https://wa.me/59177872032" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-lg text-xs uppercase tracking-wider font-sans shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 cursor-pointer"
@@ -111,13 +111,13 @@ export default function Contact() {
             <Card className="bg-surface border border-border shadow-sm p-2 overflow-hidden h-72 rounded-lg relative flex items-center justify-center text-center">
               <iframe
                 title="Ubicacion Pasteleria Dulce Encanto"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3799.309062035319!2d-63.1843126!3d-17.766779!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTfCsDQ2JzAwLjQiUyA2M8KwMTEnMDMuNSJX!5e0!3m2!1ses!2sbo!4v1657800000000!5m2!1ses!2sbo"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6109.3921912289325!2d-64.75171651298785!3d-21.50631914541871!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9406380bee269fbf%3A0xf8c9771ffb09d1c3!2sTarija!5e1!3m2!1ses!2sbo!4v1788272017362!5m2!1ses!2sbo"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
                 allowFullScreen={true}
                 loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
+                referrerPolicy="strict-origin-when-cross-origin"
                 className="absolute inset-0"
               />
             </Card>

@@ -9,6 +9,7 @@ use App\AI\Contracts\ToolInterface;
 class ToolRegistry
 {
     protected string $lastIntent = 'catalogo';
+
     protected array $lastToolNames = [];
 
     public function __construct(array $tools = [])
@@ -71,10 +72,10 @@ class ToolRegistry
 
         $intent = $this->detectIntent($lastMessage, $hasActiveDraft);
         $this->lastIntent = $intent;
-        
+
         $allowedTools = [];
         if ($intent === 'confirmacion') {
-            $allowedTools = ['confirm_order_draft', 'get_order_draft_summary', 'get_order_history_link'];
+            $allowedTools = ['confirm_order_draft', 'get_order_draft_summary', 'get_order_history_link', 'get_bakery_location'];
         } elseif ($intent === 'pedido') {
             $allowedTools = [
                 'add_to_order_draft',
@@ -86,8 +87,11 @@ class ToolRegistry
                 'get_variant_extras',
                 'search_products',
                 'search_variants',
-                'get_order_history_link'
+                'get_order_history_link',
             ];
+            if ($hasActiveDraft) {
+                $allowedTools[] = 'confirm_order_draft';
+            }
         } else { // catalogo
             $allowedTools = [
                 'search_products',
@@ -97,7 +101,8 @@ class ToolRegistry
                 'search_promotions',
                 'get_business_info',
                 'get_opening_hours',
-                'get_order_history_link'
+                'get_bakery_location',
+                'get_order_history_link',
             ];
         }
 
@@ -105,7 +110,7 @@ class ToolRegistry
         $variantSelected = self::isVariantSelected($history, $lastMessage);
         // If no variant is selected, remove get_variant_extras from allowedTools
         // EXCEPT if the user is explicitly asking about extras/adicionales (so that Groq doesn't crash on tool call generation).
-        if (!$variantSelected) {
+        if (! $variantSelected) {
             $isAskingForExtras = false;
             if ($lastMessage !== null) {
                 $text = strtolower($lastMessage);
@@ -113,8 +118,8 @@ class ToolRegistry
                     $isAskingForExtras = true;
                 }
             }
-            if (!$isAskingForExtras) {
-                $allowedTools = array_values(array_filter($allowedTools, fn($t) => $t !== 'get_variant_extras'));
+            if (! $isAskingForExtras) {
+                $allowedTools = array_values(array_filter($allowedTools, fn ($t) => $t !== 'get_variant_extras'));
             }
         }
 
@@ -123,9 +128,9 @@ class ToolRegistry
 
         foreach ($this->tools as $tool) {
             $name = $tool->getName();
-            
+
             // Allow all tools when lastMessage is null to maintain compatibility with test suites
-            if ($lastMessage !== null && !in_array($name, $allowedTools, true)) {
+            if ($lastMessage !== null && ! in_array($name, $allowedTools, true)) {
                 continue;
             }
 
@@ -136,12 +141,12 @@ class ToolRegistry
                 } else {
                     $required = $parameters['required'] ?? [];
                     foreach ($parameters['properties'] as $propName => $propDetails) {
-                        if (!in_array($propName, $required, true)) {
+                        if (! in_array($propName, $required, true)) {
                             if (isset($propDetails['type'])) {
                                 if (is_string($propDetails['type'])) {
                                     $propDetails['type'] = [$propDetails['type'], 'null'];
                                 } elseif (is_array($propDetails['type'])) {
-                                    if (!in_array('null', $propDetails['type'], true)) {
+                                    if (! in_array('null', $propDetails['type'], true)) {
                                         $propDetails['type'][] = 'null';
                                     }
                                 }
@@ -151,7 +156,7 @@ class ToolRegistry
                     }
                 }
             }
-            
+
             $schema[] = [
                 'type' => 'function',
                 'function' => [
@@ -164,6 +169,7 @@ class ToolRegistry
         }
 
         $this->lastToolNames = $sentToolNames;
+
         return $schema;
     }
 
@@ -178,11 +184,43 @@ class ToolRegistry
 
         $text = strtolower($lastMessage);
 
-        // Caso confirmación
-        $confirmationKeywords = ['confirmar', 'confirma', 'finalizar', 'pagar', 'pago', 'direccion', 'entrega', 'retiro', 'nombre', 'fecha', 'hora'];
+        // Caso ubicación de la pastelería: se mantiene en 'catalogo' (donde vive get_bakery_location)
+        // aunque el mensaje contenga palabras como "dirección" que normalmente irían a confirmación.
+        $locationKeywords = ['donde estan', 'dónde están', 'donde queda', 'dónde queda', 'donde se ubican', 'como llego', 'cómo llego', 'como llegar', 'cómo llegar', 'su ubicacion', 'su ubicación', 'la ubicacion', 'la ubicación', 'pasame la ubicacion', 'pásame la ubicación', 'ubicados', 'el mapa', 'google maps'];
+        foreach ($locationKeywords as $kw) {
+            if (str_contains($text, $kw)) {
+                return 'catalogo';
+            }
+        }
+
+        // Caso confirmación explícita o datos de entrega
+        $confirmationKeywords = [
+            'confirmar', 'confirma', 'finalizar', 'pagar', 'pago', 'direccion', 'dirección', 'entrega', 'retiro',
+            'nombre', 'fecha', 'hora', 'tienda', 'delivery', 'mañana', 'manana', 'hoy', 'mediodia', 'mediodía',
+        ];
         foreach ($confirmationKeywords as $kw) {
             if (str_contains($text, $kw)) {
                 return 'confirmacion';
+            }
+        }
+
+        // Caso respuestas afirmativas y confirmación con borrador activo
+        if ($hasActiveDraft) {
+            $affirmationKeywords = [
+                'si', 'sí', 'sii', 'siii', 'claro', 'dale', 'de acuerdo', 'ok', 'listo', 'proceder',
+                'generar', 'correcto', 'exacto', 'por favor', 'hazlo', 'hacer el pedido', 'registralo',
+                'regístralo', 'confirmo', 'ya', 'adelante',
+            ];
+            $words = preg_split('/[\s,\.\?!;:]+/u', $text, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($words as $w) {
+                if (in_array($w, $affirmationKeywords, true)) {
+                    return 'confirmacion';
+                }
+            }
+            foreach ($affirmationKeywords as $kw) {
+                if (str_contains($text, $kw)) {
+                    return 'confirmacion';
+                }
             }
         }
 
@@ -205,7 +243,7 @@ class ToolRegistry
     {
         $lastSearchVariantsContent = null;
         $searchVariantsIndex = -1;
-        
+
         foreach ($history as $idx => $msg) {
             if (($msg['role'] ?? '') === 'tool' && ($msg['name'] ?? '') === 'search_variants') {
                 $lastSearchVariantsContent = $msg['content'] ?? '';
@@ -218,7 +256,7 @@ class ToolRegistry
         }
 
         $variantIdentifiers = [];
-        
+
         // Extract IDs using regex [ID Variante: \d+]
         if (preg_match_all('/\[ID Variante:\s*(\d+)\]/i', $lastSearchVariantsContent, $matchesId)) {
             foreach ($matchesId[1] as $id) {
@@ -234,15 +272,16 @@ class ToolRegistry
         }
 
         // Accent removal/cleaning function
-        $cleanString = function(string $text) {
+        $cleanString = function (string $text) {
             $utf8 = [
-                '/[áàâä]/u'   =>   'a',
-                '/[éèêë]/u'   =>   'e',
-                '/[íìîï]/u'   =>   'i',
-                '/[óòôö]/u'   =>   'o',
-                '/[úùûü]/u'   =>   'u',
-                '/[ñ]/u'      =>   'n',
+                '/[áàâä]/u' => 'a',
+                '/[éèêë]/u' => 'e',
+                '/[íìîï]/u' => 'i',
+                '/[óòôö]/u' => 'o',
+                '/[úùûü]/u' => 'u',
+                '/[ñ]/u' => 'n',
             ];
+
             return preg_replace(array_keys($utf8), array_values($utf8), $text);
         };
 
@@ -279,7 +318,7 @@ class ToolRegistry
 
         if ($lastMessage !== null) {
             $userMsg = strtolower($cleanString($lastMessage));
-            if (!str_contains($userMsg, 'adicional') && !str_contains($userMsg, 'extra') && !str_contains($userMsg, 'topping')) {
+            if (! str_contains($userMsg, 'adicional') && ! str_contains($userMsg, 'extra') && ! str_contains($userMsg, 'topping')) {
                 foreach ($normalizedIdentifiers as $identifier) {
                     if (str_contains($userMsg, $identifier)) {
                         return true;

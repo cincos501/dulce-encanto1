@@ -100,7 +100,7 @@ export default function Promotions() {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute top-3 right-3">
-                      <Badge variant="error" className="font-bold text-xs shadow-md py-1 px-2.5">
+                      <Badge variant="danger" className="font-bold text-xs shadow-md py-1 px-2.5">
                         {promo.discount_type === 'percentage' 
                           ? `${Number(promo.discount).toFixed(0)}% OFF` 
                           : `Bs. ${Number(promo.discount).toFixed(0)} OFF`}

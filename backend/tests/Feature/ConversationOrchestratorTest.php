@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Orchestrators\ConversationOrchestrator;
-use App\AI\Services\AIConversationService;
 use App\AI\Contracts\ConversationMemoryInterface;
-use App\Services\ChatwootService;
+use App\AI\Contracts\ToolInterface;
+use App\AI\DTO\AIResponseDTO;
+use App\AI\Orchestrators\ConversationOrchestrator;
+use App\AI\Orders\OrderDraftManager;
 use App\AI\Registry\ToolRegistry;
+use App\AI\Services\AIConversationService;
 use App\DTO\ChatwootMessageDTO;
 use App\Models\WhatsAppSession;
-use App\AI\DTO\AIResponseDTO;
-use App\AI\Contracts\ToolInterface;
-use App\AI\Orders\OrderDraftManager;
+use App\Services\ChatwootService;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -35,7 +35,7 @@ class ConversationOrchestratorTest extends TestCase
             'name' => 'Juan Pérez',
             'step' => 'idle',
             'order_data' => [],
-            'history' => []
+            'history' => [],
         ]);
 
         $mockMemory = $this->mock(ConversationMemoryInterface::class, function (MockInterface $mock) use ($session) {
@@ -65,6 +65,7 @@ class ConversationOrchestratorTest extends TestCase
         });
 
         $mockChatwootService = $this->mock(ChatwootService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('toggleTypingStatus')->zeroOrMoreTimes();
             $mock->shouldReceive('sendMessage')
                 ->once()
                 ->with(123, 'Hola, ¿cómo estás?')
@@ -82,7 +83,7 @@ class ConversationOrchestratorTest extends TestCase
                 ->andReturn([]);
         });
 
-        $mockDraft = (object)['items' => []];
+        $mockDraft = (object) ['items' => []];
         $mockDraftManager = $this->mock(OrderDraftManager::class, function (MockInterface $mock) use ($mockDraft) {
             $mock->shouldReceive('getDraft')
                 ->andReturn($mockDraft);
@@ -108,7 +109,7 @@ class ConversationOrchestratorTest extends TestCase
             'name' => 'Juan Pérez',
             'step' => 'idle',
             'order_data' => [],
-            'history' => []
+            'history' => [],
         ]);
 
         $mockMemory = $this->mock(ConversationMemoryInterface::class, function (MockInterface $mock) use ($session) {
@@ -124,7 +125,7 @@ class ConversationOrchestratorTest extends TestCase
             $mock->shouldReceive('addMessageRaw')
                 ->once()
                 ->with($session, \Mockery::on(function ($msg) {
-                    return $msg['role'] === 'assistant' && !empty($msg['tool_calls']);
+                    return $msg['role'] === 'assistant' && ! empty($msg['tool_calls']);
                 }));
 
             $mock->shouldReceive('addMessageRaw')
@@ -152,9 +153,9 @@ class ConversationOrchestratorTest extends TestCase
                         'id' => 'call_123',
                         'function' => [
                             'name' => 'search_products',
-                            'arguments' => '{"query":"torta"}'
-                        ]
-                    ]
+                            'arguments' => '{"query":"torta"}',
+                        ],
+                    ],
                 ]));
 
             // Second call returns final text response
@@ -165,6 +166,7 @@ class ConversationOrchestratorTest extends TestCase
         });
 
         $mockChatwootService = $this->mock(ChatwootService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('toggleTypingStatus')->zeroOrMoreTimes();
             $mock->shouldReceive('sendMessage')
                 ->once()
                 ->with(123, 'Tenemos torta de chocolate.')
@@ -194,7 +196,7 @@ class ConversationOrchestratorTest extends TestCase
                 ->andReturn($mockTool);
         });
 
-        $mockDraft = (object)['items' => []];
+        $mockDraft = (object) ['items' => []];
         $mockDraftManager = $this->mock(OrderDraftManager::class, function (MockInterface $mock) use ($mockDraft) {
             $mock->shouldReceive('getDraft')
                 ->andReturn($mockDraft);

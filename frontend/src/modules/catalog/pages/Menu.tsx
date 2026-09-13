@@ -454,7 +454,7 @@ export default function Menu() {
                   </div>
 
                   {/* PRICE & ADD ACTION */}
-                  {activeVariant && (
+                  {activeVariant && detailData && (
                     <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
                       <div className="space-y-0.5">
                         <span className="text-[9px] text-text-sub block font-bold uppercase tracking-widest">Precio Unitario</span>
@@ -465,7 +465,7 @@ export default function Menu() {
                         />
                       </div>
                       <Button
-                        disabled={activeVariant.sale_type === 'READY_STOCK' && activeVariant.stock <= 0}
+                        disabled={activeVariant.sale_type === 'READY_STOCK' && (activeVariant.stock ?? 0) <= 0}
                         onClick={() => {
                           const selectedExtras = (activeVariant.extras || [])
                             .filter((e: any) => selectedExtraIds.includes(e.id))
@@ -495,7 +495,7 @@ export default function Menu() {
                         className="text-[10px] uppercase tracking-wider gap-1.5 font-bold"
                       >
                         <FiShoppingBag className="text-xs" />
-                        <span>{activeVariant.sale_type === 'READY_STOCK' && activeVariant.stock <= 0 ? 'Sin Stock' : 'Añadir al pedido'}</span>
+                        <span>{activeVariant.sale_type === 'READY_STOCK' && (activeVariant.stock ?? 0) <= 0 ? 'Sin Stock' : 'Añadir al pedido'}</span>
                       </Button>
                     </div>
                   )}

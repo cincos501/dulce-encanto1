@@ -24,20 +24,18 @@ const supplySchema = z.object({
   name: z.string()
     .min(2, 'El nombre debe tener al menos 2 caracteres.')
     .max(100, 'El nombre no puede superar los 100 caracteres.'),
-  unit: z.enum(['kg', 'g', 'L', 'ml', 'u', 'Caja', 'Bolsa', 'Paquete'], {
-    required_error: 'La unidad de medida es requerida.'
-  }),
+  unit: z.string().min(1, 'La unidad de medida es requerida.'),
   stock: z.preprocess(
     (val) => (val === '' ? undefined : Number(val)),
-    z.number({ invalid_type_error: 'El stock debe ser un número.' }).min(0, 'El stock no puede ser negativo.')
+    z.number({ error: 'El stock debe ser un número.' }).min(0, 'El stock no puede ser negativo.')
   ),
   minimum_stock: z.preprocess(
     (val) => (val === '' ? undefined : Number(val)),
-    z.number({ invalid_type_error: 'El stock mínimo debe ser un número.' }).min(0, 'El stock mínimo no puede ser negativo.')
+    z.number({ error: 'El stock mínimo debe ser un número.' }).min(0, 'El stock mínimo no puede ser negativo.')
   ),
   average_cost: z.preprocess(
     (val) => (val === '' ? undefined : Number(val)),
-    z.number({ invalid_type_error: 'El costo promedio debe ser un número.' }).min(0, 'El costo no puede ser negativo.')
+    z.number({ error: 'El costo promedio debe ser un número.' }).min(0, 'El costo no puede ser negativo.')
   ),
   is_active: z.boolean().default(true)
 })
@@ -58,6 +56,7 @@ export default function Supplies() {
   const [search, setSearch] = useState<string>('')
   const [page, setPage] = useState<number>(1)
   const perPage = 10
+  const [statusFilter, setStatusFilter] = useState<string>('')
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false)
@@ -73,7 +72,7 @@ export default function Supplies() {
   const [purchaseError, setPurchaseError] = useState<string | null>(null)
 
   // React Hook Form for supply
-  const form = useForm<SupplyFormInputs>({
+  const form = useForm({
     resolver: zodResolver(supplySchema),
     defaultValues: {
       name: '',
@@ -132,7 +131,15 @@ export default function Supplies() {
     }
   })
 
-  const supplies = (queryData?.data as Supply[]) || []
+  const rawSupplies = (queryData?.data as Supply[]) || []
+  const supplies = [...rawSupplies]
+    .filter(s => {
+      if (statusFilter === 'active') return s.is_active
+      if (statusFilter === 'inactive') return !s.is_active
+      return true
+    })
+    .sort((a, b) => (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1))
+
   const pagination = queryData?.meta || { current_page: 1, last_page: 1, total: 0 }
   const activeSuppliers = (suppliersData as Supplier[]) || []
 
@@ -500,16 +507,27 @@ export default function Supplies() {
       onSearchChange={(val) => { setSearch(val); setPage(1); }}
       searchPlaceholder="Buscar por nombre o unidad..."
       extraActions={
-        hasPermission('supplies.update') && (
-          <Button
-            variant="secondary"
-            onClick={openPurchaseModal}
-            className="flex items-center gap-1.5 text-xs font-semibold shrink-0"
+        <div className="flex items-center gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            className="px-4 py-2.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-stone-200 outline-none text-xs text-text-main bg-surface font-semibold"
           >
-            <FiShoppingBag className="text-sm shrink-0" />
-            <span>Registrar Compra</span>
-          </Button>
-        )
+            <option value="">-- Todos los estados --</option>
+            <option value="active">Activos</option>
+            <option value="inactive">Inactivos</option>
+          </select>
+          {hasPermission('supplies.update') && (
+            <Button
+              variant="secondary"
+              onClick={openPurchaseModal}
+              className="flex items-center gap-1.5 text-xs font-semibold shrink-0"
+            >
+              <FiShoppingBag className="text-sm shrink-0" />
+              <span>Registrar Compra</span>
+            </Button>
+          )}
+        </div>
       }
     >
       <CrudTable

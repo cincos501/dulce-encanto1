@@ -25,8 +25,10 @@ class AuthController extends Controller
     public function login(LoginRequest $request): UserResource
     {
         $user = $this->authService->login($request->validated());
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return (new UserResource($user))->additional([
+            'token' => $token,
             'success' => true,
             'message' => 'Inicio de sesión exitoso.',
         ]);

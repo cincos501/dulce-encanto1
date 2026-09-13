@@ -67,7 +67,9 @@ export interface Promotion {
   start_date: string;
   end_date: string;
   is_active: boolean;
+  image_url?: string | null;
   products?: Product[];
+  variants?: ProductVariant[];
   created_at?: string;
   updated_at?: string;
 }
@@ -112,6 +114,7 @@ export interface CatalogItem {
   has_promotion: boolean;
   promo_discount_text: string | null;
   has_multiple_variants: boolean;
+  variants?: { id: number; name: string; price: number; sale_type?: string | null }[];
   image: string | null;
 }
 

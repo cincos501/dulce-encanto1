@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\DTO\StoreOrderDTO;
+use App\Events\ReadyStockOutOfStock;
+use App\Events\SupplyStockLow;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderItemExtra;
-use App\Models\Customer;
 use App\Models\ProductVariant;
-use App\Models\Extra;
-use App\DTO\StoreOrderDTO;
 use App\Repositories\OrderRepositoryInterface;
+use App\Support\PhoneHelper;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -64,9 +67,9 @@ class OrderService
         ];
 
         if ($oldStatus !== $newStatus) {
-            if (!isset($validTransitions[$oldStatus]) || !in_array($newStatus, $validTransitions[$oldStatus], true)) {
+            if (! isset($validTransitions[$oldStatus]) || ! in_array($newStatus, $validTransitions[$oldStatus], true)) {
                 throw ValidationException::withMessages([
-                    'status' => ["Transición de estado no válida de '{$oldStatus}' a '{$newStatus}'."]
+                    'status' => ["Transición de estado no válida de '{$oldStatus}' a '{$newStatus}'."],
                 ]);
             }
         }
@@ -75,7 +78,7 @@ class OrderService
         if ($newStatus === 'En preparación' && $oldStatus !== 'En preparación') {
             $requiredSupplies = []; // [supply_id => ['required' => float, 'supply' => Supply, 'unit' => string]]
             $requiredVariantStocks = []; // [variant_id => ['required' => int, 'variant' => ProductVariant]]
-            
+
             foreach ($order->items as $item) {
                 $variant = $item->productVariant;
                 if ($variant === null) {
@@ -90,7 +93,7 @@ class OrderService
                     } else {
                         $requiredVariantStocks[$variantId] = [
                             'required' => $qty,
-                            'variant' => $variant
+                            'variant' => $variant,
                         ];
                     }
                 } else {
@@ -108,9 +111,9 @@ class OrderService
                             $requiredSupplies[$supplyId]['required'] += $neededQty;
                         } else {
                             $requiredSupplies[$supplyId] = [
-                              'required' => $neededQty,
-                              'supply' => $supply,
-                              'unit' => $recipeItem->unit,
+                                'required' => $neededQty,
+                                'supply' => $supply,
+                                'unit' => $recipeItem->unit,
                             ];
                         }
                     }
@@ -141,13 +144,13 @@ class OrderService
                 if ($available < $required) {
                     $supplyName = $supply->name;
                     $unit = $data['unit'];
-                    $validationErrors[] = "Stock insuficiente para el insumo {$supplyName}. Disponible: " . number_format($available, 4) . " {$unit}, Requerido: " . number_format($required, 4) . " {$unit}.";
+                    $validationErrors[] = "Stock insuficiente para el insumo {$supplyName}. Disponible: ".number_format($available, 4)." {$unit}, Requerido: ".number_format($required, 4)." {$unit}.";
                 }
             }
 
-            if (!empty($validationErrors)) {
+            if (! empty($validationErrors)) {
                 throw ValidationException::withMessages([
-                    'status' => $validationErrors
+                    'status' => $validationErrors,
                 ]);
             }
 
@@ -161,7 +164,7 @@ class OrderService
 
                     // Check if stock becomes 0 to fire READY_STOCK out of stock event
                     if ($variant->stock <= 0) {
-                        event(new \App\Events\ReadyStockOutOfStock($variant));
+                        event(new ReadyStockOutOfStock($variant));
                     }
                 }
 
@@ -173,7 +176,7 @@ class OrderService
 
                     // Check if supply stock drops below minimum stock to fire alert event
                     if ($supply->stock <= $supply->minimum_stock) {
-                        event(new \App\Events\SupplyStockLow($supply));
+                        event(new SupplyStockLow($supply));
                     }
                 }
 
@@ -194,16 +197,14 @@ class OrderService
     {
         return DB::transaction(function () use ($dto): Order {
             // 1. Create or retrieve Customer based on phone
-            $normalizedPhone = \App\Support\PhoneHelper::normalize($dto->customerPhone);
+            $normalizedPhone = PhoneHelper::normalize($dto->customerPhone);
             $customer = Customer::firstOrNew(['phone' => $normalizedPhone]);
             $customer->full_name = $dto->customerName;
-            
-            // Serialize delivery details into email column
-            $customer->email = json_encode([
-                'delivery_type' => $dto->deliveryType,
-                'address' => $dto->address,
-                'observations' => $dto->observations,
-            ]);
+
+            // Do not corrupt email with JSON; leave existing email intact or null
+            if (empty($customer->email) || str_starts_with(trim($customer->email), '{')) {
+                $customer->email = null;
+            }
             $customer->save();
 
             // 2. Compute order items prices and totals
@@ -216,13 +217,13 @@ class OrderService
                 $variant = ProductVariant::find($itemDto->productVariantId);
                 if ($variant === null) {
                     throw ValidationException::withMessages([
-                        'items' => ["La presentación seleccionada no existe o se encuentra inactiva."]
+                        'items' => ['La presentación seleccionada no existe o se encuentra inactiva.'],
                     ]);
                 }
 
-                if (!$variant->is_active || !$variant->product?->is_active || ($variant->product?->category && !$variant->product->category->is_active)) {
+                if (! $variant->is_active || ! $variant->product?->is_active || ($variant->product?->category && ! $variant->product->category->is_active)) {
                     throw ValidationException::withMessages([
-                        'items' => ["La presentación '{$variant->name}' de '" . ($variant->product?->name ?? '') . "' no está disponible porque el producto o su categoría se encuentra inactivo."]
+                        'items' => ["La presentación '{$variant->name}' de '".($variant->product?->name ?? '')."' no está disponible porque el producto o su categoría se encuentra inactivo."],
                     ]);
                 }
 
@@ -235,7 +236,7 @@ class OrderService
                     } else {
                         $requiredVariantStocks[$variantId] = [
                             'required' => $qty,
-                            'variant' => $variant
+                            'variant' => $variant,
                         ];
                     }
                 } else {
@@ -296,7 +297,7 @@ class OrderService
                     'variant' => $variant,
                     'quantity' => $itemDto->quantity,
                     'price' => $itemUnitPrice,
-                    'extras' => $extrasModels
+                    'extras' => $extrasModels,
                 ];
             }
 
@@ -325,13 +326,13 @@ class OrderService
                 if ($available < $required) {
                     $supplyName = $supply->name;
                     $unit = $data['unit'];
-                    $validationErrors[] = "Stock insuficiente de insumos para fabricar este pedido. Insumo '{$supplyName}' - Disponible: " . number_format($available, 2) . " {$unit}, Requerido: " . number_format($required, 2) . " {$unit}.";
+                    $validationErrors[] = "Stock insuficiente de insumos para fabricar este pedido. Insumo '{$supplyName}' - Disponible: ".number_format($available, 2)." {$unit}, Requerido: ".number_format($required, 2)." {$unit}.";
                 }
             }
 
-            if (!empty($validationErrors)) {
+            if (! empty($validationErrors)) {
                 throw ValidationException::withMessages([
-                    'stock' => $validationErrors
+                    'stock' => $validationErrors,
                 ]);
             }
 
@@ -341,8 +342,12 @@ class OrderService
             $order = Order::create([
                 'customer_id' => $customer->id,
                 'status' => 'Pendiente',
+                'payment_status' => 'Pendiente',
                 'total' => $orderTotal,
                 'delivery_date' => $dto->deliveryDate,
+                'delivery_type' => $dto->deliveryType,
+                'delivery_address' => $dto->address,
+                'delivery_notes' => $dto->observations,
             ]);
 
             // 4. Create OrderItems & OrderItemExtras
@@ -371,7 +376,7 @@ class OrderService
     /**
      * Get all customers.
      */
-    public function getCustomers(): \Illuminate\Support\Collection
+    public function getCustomers(): Collection
     {
         return $this->orderRepository->getCustomers();
     }

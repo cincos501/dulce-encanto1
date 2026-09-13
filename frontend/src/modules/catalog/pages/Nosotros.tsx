@@ -9,12 +9,12 @@ export default function Nosotros() {
   const highlights = [
     {
       title: 'Ingredientes Selectos',
-      desc: 'Utilizamos frutas frescas de temporada, chocolates con altos porcentajes de cacao selecto y mantequilla premium pura. No comprometemos la calidad de nuestra materia prima.',
+      desc: 'Utilizamos frutas frescas de temporada, chocolates con altos porcentajes de cacao selecto y mantequilla pura. No comprometemos la calidad de nuestra materia prima.',
       icon: FiStar
     },
     {
       title: 'Elaboración a Mano',
-      desc: 'Cada postre es horneado y decorado de forma artesanal por nuestro equipo de reposteros, dedicando el tiempo y cuidado necesario a cada detalle para un acabado impecable.',
+      desc: 'Cada postre es horneado y decorado con dedicación por nuestro equipo de reposteros, prestando el tiempo y cuidado necesario a cada detalle para un acabado impecable.',
       icon: FiHeart
     },
     {
@@ -56,7 +56,7 @@ export default function Nosotros() {
               Sobre Dulce Encanto
             </span>
             <Typography variant="h2" className="text-2xl sm:text-3xl font-black text-primary">
-              La Magia de la Repostería Artesanal
+              La Magia de Nuestra Repostería
             </Typography>
           </div>
           

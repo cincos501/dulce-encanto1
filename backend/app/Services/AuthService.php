@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthService
@@ -35,7 +39,9 @@ class AuthService
             ]);
         }
 
-        request()->session()->regenerate();
+        if (request()->hasSession()) {
+            request()->session()->regenerate();
+        }
 
         return $user;
     }
@@ -47,9 +53,10 @@ class AuthService
     {
         Auth::guard('web')->logout();
 
-        request()->session()->invalidate();
-
-        request()->session()->regenerateToken();
+        if (request()->hasSession()) {
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+        }
     }
 
     /**
@@ -61,9 +68,9 @@ class AuthService
      */
     public function sendResetLink(array $credentials): string
     {
-        $status = \Illuminate\Support\Facades\Password::sendResetLink($credentials);
+        $status = Password::sendResetLink($credentials);
 
-        if ($status !== \Illuminate\Support\Facades\Password::RESET_LINK_SENT) {
+        if ($status !== Password::RESET_LINK_SENT) {
             throw ValidationException::withMessages([
                 'email' => [__($status)],
             ]);
@@ -81,20 +88,20 @@ class AuthService
      */
     public function resetPassword(array $credentials): string
     {
-        $status = \Illuminate\Support\Facades\Password::reset(
+        $status = Password::reset(
             $credentials,
             function ($user, $password) {
                 $user->forceFill([
-                    'password' => \Illuminate\Support\Facades\Hash::make($password)
-                ])->setRememberToken(\Illuminate\Support\Str::random(60));
+                    'password' => Hash::make($password),
+                ])->setRememberToken(Str::random(60));
 
                 $user->save();
 
-                event(new \Illuminate\Auth\Events\PasswordReset($user));
+                event(new PasswordReset($user));
             }
         );
 
-        if ($status !== \Illuminate\Support\Facades\Password::PASSWORD_RESET) {
+        if ($status !== Password::PASSWORD_RESET) {
             throw ValidationException::withMessages([
                 'email' => [__($status)],
             ]);

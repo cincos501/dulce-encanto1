@@ -24,10 +24,15 @@ class InventoryStockFlowTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected Supplier $supplier;
+
     protected Supply $supply1;
+
     protected Supply $supply2;
+
     protected ProductVariant $variant;
+
     protected Customer $customer;
 
     protected function setUp(): void
@@ -283,8 +288,8 @@ class InventoryStockFlowTest extends TestCase
                     'product_variant_id' => $this->variant->id,
                     'quantity' => 2,
                     'extras' => [],
-                ]
-            ]
+                ],
+            ],
         ];
 
         // Public checkout does NOT require authentication!
@@ -306,24 +311,24 @@ class InventoryStockFlowTest extends TestCase
                         'email',
                         'phone',
                     ],
-                    'items'
-                ]
+                    'items',
+                ],
             ]);
 
-        // Verify order is created in database
-        $this->assertDatabaseHas('orders', [
-            'status' => 'Pendiente',
-            'total' => 30.00, // 15.00 * 2
-        ]);
+        // Verify order is created in database with delivery details and payment status
+        $order = Order::latest('id')->first();
+        $this->assertNotNull($order);
+        $this->assertEquals('Pendiente', $order->status);
+        $this->assertEquals('Pendiente', $order->payment_status);
+        $this->assertEquals('Delivery', $order->delivery_type);
+        $this->assertEquals('Av. Providencia 1234', $order->delivery_address);
+        $this->assertEquals('Ring bell twice', $order->delivery_notes);
+        $this->assertEquals(30.00, (float) $order->total);
 
-        // Verify customer has delivery details JSON encoded in email column
-        $customer = \App\Models\Customer::where('phone', '59177872032')->first();
+        // Verify customer details
+        $customer = Customer::where('phone', '59177872032')->first();
         $this->assertNotNull($customer);
         $this->assertEquals('John Doe', $customer->full_name);
-        
-        $delivery = json_decode($customer->email, true);
-        $this->assertEquals('Delivery', $delivery['delivery_type']);
-        $this->assertEquals('Av. Providencia 1234', $delivery['address']);
-        $this->assertEquals('Ring bell twice', $delivery['observations']);
+        $this->assertEquals('client@test.com', $customer->email);
     }
 }

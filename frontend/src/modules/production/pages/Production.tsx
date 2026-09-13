@@ -34,11 +34,11 @@ import { cn } from '@/shared/utils/cn'
 const productionBatchSchema = z.object({
   product_variant_id: z.preprocess(
     (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
-    z.number({ required_error: 'La presentación es requerida.' }).min(1, 'Presentación no válida.')
+    z.number({ error: 'La presentación es requerida.' }).min(1, 'Presentación no válida.')
   ),
   quantity: z.preprocess(
     (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
-    z.number({ required_error: 'La cantidad es requerida.' }).int().min(1, 'La cantidad debe ser mayor a 0.')
+    z.number({ error: 'La cantidad es requerida.' }).int().min(1, 'La cantidad debe ser mayor a 0.')
   ),
   notes: z.string().max(1000, 'Las notas no pueden superar los 1000 caracteres.').optional().or(z.literal('')),
 })
@@ -86,7 +86,7 @@ export default function Production() {
   const readyStockVariants = (allVariantsData || []).filter((v: any) => v.sale_type === 'READY_STOCK')
 
   // React Hook Form for Production Batch Form
-  const productionForm = useForm<ProductionFormInputs>({
+  const productionForm = useForm({
     resolver: zodResolver(productionBatchSchema),
     defaultValues: {
       product_variant_id: undefined,
@@ -304,11 +304,30 @@ export default function Production() {
     },
     {
       header: 'Productos Requeridos',
-      cell: (item: Order) => (
-        <div className="max-w-xs truncate text-[11px] font-semibold text-text-sub">
-          {item.items?.map(i => `${i.quantity}x ${i.product_name} (${i.presentation_name})`).join(', ')}
-        </div>
-      )
+      cell: (item: Order) => {
+        const hasReadyStock = item.items?.some(i => (i as any).productVariant?.sale_type === 'READY_STOCK')
+        const hasMadeToOrder = item.items?.some(i => (i as any).productVariant?.sale_type === 'MADE_TO_ORDER' || !(i as any).productVariant?.sale_type)
+
+        return (
+          <div className="max-w-xs text-[11px] font-semibold text-text-sub space-y-1">
+            <div className="truncate">
+              {item.items?.map(i => `${i.quantity}x ${i.product_name} (${i.presentation_name})`).join(', ')}
+            </div>
+            <div className="flex items-center gap-1 flex-wrap">
+              {hasReadyStock && (
+                <span className="text-[9px] py-0.5 px-1.5 font-bold text-amber-800 bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 rounded border border-amber-200 dark:border-amber-800">
+                  🏷️ De Vitrina (Stock Reservado)
+                </span>
+              )}
+              {hasMadeToOrder && (
+                <span className="text-[9px] py-0.5 px-1.5 font-bold text-blue-800 bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800">
+                  🎂 Requiere Horneado
+                </span>
+              )}
+            </div>
+          </div>
+        )
+      }
     },
     {
       header: 'Estado',

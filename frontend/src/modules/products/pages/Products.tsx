@@ -43,7 +43,7 @@ import { handleApiError } from '@/shared/utils/formErrors'
 const productSchema = z.object({
   category_id: z.preprocess(
     (val) => (val === '' ? undefined : Number(val)),
-    z.number({ required_error: 'La categoría es requerida.' }).min(1, 'Categoría no válida.')
+    z.number({ error: 'La categoría es requerida.' }).min(1, 'Categoría no válida.')
   ),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.').max(100, 'El nombre no puede superar los 100 caracteres.'),
   description: z.string().max(500, 'La descripción no puede superar los 500 caracteres.').optional().or(z.literal('')),
@@ -56,11 +56,11 @@ const variantSchema = z.object({
   name: z.string().min(2, 'La presentación debe tener al menos 2 caracteres.').max(100, 'El nombre no puede superar los 100 caracteres.'),
   price: z.preprocess(
     (val) => (val === '' ? undefined : Number(val)),
-    z.number({ invalid_type_error: 'El precio debe ser un número.' }).min(0.01, 'El precio debe ser mayor a 0.')
+    z.number({ error: 'El precio debe ser un número.' }).min(0.01, 'El precio debe ser mayor a 0.')
   ),
   serves_people: z.preprocess(
     (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
-    z.number({ invalid_type_error: 'La cantidad de personas debe ser un número.' }).int().min(1, 'Debe ser para al menos 1 persona.').optional()
+    z.number({ error: 'La cantidad de personas debe ser un número.' }).int().min(1, 'Debe ser para al menos 1 persona.').optional()
   ),
   sale_type: z.string().default('MADE_TO_ORDER'),
   stock: z.preprocess(
@@ -80,6 +80,7 @@ export default function Products() {
   const [search, setSearch] = useState<string>('')
   const [page, setPage] = useState<number>(1)
   const perPage = 10
+  const [statusFilter, setStatusFilter] = useState<string>('')
 
   // Active product form/tab state
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false)
@@ -97,7 +98,7 @@ export default function Products() {
   const [selectedExtrasWithPrices, setSelectedExtrasWithPrices] = useState<{ extra_id: number; price: number }[]>([])
 
   // React Hook Forms
-  const productForm = useForm<ProductFormInputs>({
+  const productForm = useForm({
     resolver: zodResolver(productSchema),
     defaultValues: {
       category_id: undefined,
@@ -107,7 +108,7 @@ export default function Products() {
     }
   })
 
-  const variantForm = useForm<VariantFormInputs>({
+  const variantForm = useForm({
     resolver: zodResolver(variantSchema),
     defaultValues: {
       name: '',
@@ -209,7 +210,15 @@ export default function Products() {
     }
   })
 
-  const products = (queryData?.data as Product[]) || []
+  const rawProducts = (queryData?.data as Product[]) || []
+  const products = [...rawProducts]
+    .filter(p => {
+      if (statusFilter === 'active') return p.is_active
+      if (statusFilter === 'inactive') return !p.is_active
+      return true
+    })
+    .sort((a, b) => (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1))
+
   const pagination = queryData?.meta || { current_page: 1, last_page: 1, total: 0 }
 
   // Load product variants & images when editing
@@ -577,6 +586,17 @@ export default function Products() {
       search={search}
       onSearchChange={(val) => { setSearch(val); setPage(1); }}
       searchPlaceholder="Buscar por nombre o descripción..."
+      extraActions={
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="px-4 py-2.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-stone-200 outline-none text-xs text-text-main bg-surface font-semibold"
+        >
+          <option value="">-- Todos los estados --</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+      }
     >
       <CrudTable
         data={products}
@@ -595,7 +615,7 @@ export default function Products() {
           isOpen={isFormOpen}
           onClose={closeFormModal}
           title={editingProduct ? `Gestionar Producto: ${editingProduct.name}` : 'Nuevo Producto'}
-          size="lg"
+          maxWidthClassName="max-w-3xl"
         >
           <div className="space-y-6">
             {/* Tabs header if editing */}

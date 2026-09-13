@@ -4,22 +4,24 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\AI\Memory\RedisConversationMemory;
+use App\AI\Orders\OrderDraftManager;
+use App\AI\Tools\Orders\ConfirmOrderDraftTool;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
-use App\AI\Tools\Orders\ConfirmOrderDraftTool;
-use App\AI\Memory\RedisConversationMemory;
 
 class ProductVariantControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected Product $product;
 
     protected function setUp(): void
@@ -199,7 +201,7 @@ class ProductVariantControllerTest extends TestCase
 
         // Case A: Cart contains MADE_TO_ORDER torta, and requested delivery date is < 24 hours.
         // It should return the warning message.
-        $draftManager = $this->app->make(\App\AI\Memory\OrderDraftManager::class);
+        $draftManager = $this->app->make(OrderDraftManager::class);
         $draftManager->clearDraft($phone);
         $draftManager->addItem($phone, $this->product->id, 'Torta de Prueba', $madeToOrderVariant->id, 'Torta MADE', 1, 120.00);
 
@@ -208,10 +210,10 @@ class ProductVariantControllerTest extends TestCase
         $deliveryTime = now()->addHours(5)->format('H:i');
 
         $result = $tool->execute([
-            'deliveryDate' => $deliveryDate,
-            'deliveryTime' => $deliveryTime,
-            'customerName' => 'Juan Perez',
-            'deliveryType' => 'Retiro en tienda',
+            'delivery_date' => $deliveryDate,
+            'delivery_time' => $deliveryTime,
+            'customer_name' => 'Juan Perez',
+            'delivery_type' => 'Retiro en tienda',
             'address' => 'Tienda',
         ], $context);
 
@@ -223,10 +225,10 @@ class ProductVariantControllerTest extends TestCase
         $draftManager->addItem($phone, $this->product->id, 'Torta de Prueba', $readyStockVariant->id, 'Torta READY', 1, 120.00);
 
         $result2 = $tool->execute([
-            'deliveryDate' => $deliveryDate,
-            'deliveryTime' => $deliveryTime,
-            'customerName' => 'Juan Perez',
-            'deliveryType' => 'Retiro en tienda',
+            'delivery_date' => $deliveryDate,
+            'delivery_time' => $deliveryTime,
+            'customer_name' => 'Juan Perez',
+            'delivery_type' => 'Retiro en tienda',
             'address' => 'Tienda',
         ], $context);
 
@@ -258,9 +260,9 @@ class ProductVariantControllerTest extends TestCase
                 [
                     'product_variant_id' => $readyStockVariant->id,
                     'quantity' => 5, // Exceeds available stock (2)
-                    'extras' => []
-                ]
-            ]
+                    'extras' => [],
+                ],
+            ],
         ];
 
         $response = $this->postJson('/api/v1/checkout', $payload);

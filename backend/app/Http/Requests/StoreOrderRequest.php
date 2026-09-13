@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\ProductVariant;
+use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -30,7 +32,7 @@ class StoreOrderRequest extends FormRequest
             'observations' => ['nullable', 'string', 'max:2000'],
             'delivery_date' => ['required', 'date_format:Y-m-d'],
             'delivery_time' => ['required', 'date_format:H:i'],
-            
+
             // Items validation
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => [
@@ -39,7 +41,7 @@ class StoreOrderRequest extends FormRequest
                 Rule::exists('product_variants', 'id')->where('is_active', true),
             ],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
-            
+
             // Item extras validation
             'items.*.extras' => ['nullable', 'array'],
             'items.*.extras.*' => [
@@ -48,6 +50,42 @@ class StoreOrderRequest extends FormRequest
                 Rule::exists('extras', 'id')->where('is_active', true),
             ],
         ];
+    }
+
+    /**
+     * Configure the validator instance with custom rules.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            $deliveryDate = $this->input('delivery_date');
+            $deliveryTime = $this->input('delivery_time');
+            $items = $this->input('items', []);
+
+            if ($deliveryDate && $deliveryTime && ! empty($items)) {
+                try {
+                    $requestedDateTime = Carbon::createFromFormat('Y-m-d H:i', "{$deliveryDate} {$deliveryTime}");
+
+                    $hasMadeToOrder = false;
+                    foreach ($items as $item) {
+                        $variantId = $item['product_variant_id'] ?? null;
+                        if ($variantId) {
+                            $variant = ProductVariant::find($variantId);
+                            if ($variant && $variant->sale_type !== 'READY_STOCK') {
+                                $hasMadeToOrder = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($hasMadeToOrder && $requestedDateTime->lt(now()->addHours(24))) {
+                        $validator->errors()->add('delivery_date', 'Los productos bajo pedido requieren mínimo 24 horas de anticipación.');
+                    }
+                } catch (\Throwable $e) {
+                    // Handled by standard date format rules
+                }
+            }
+        });
     }
 
     /**

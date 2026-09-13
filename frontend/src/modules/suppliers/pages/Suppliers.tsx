@@ -48,13 +48,14 @@ export default function Suppliers() {
   const [search, setSearch] = useState<string>('')
   const [page, setPage] = useState<number>(1)
   const perPage = 10
+  const [statusFilter, setStatusFilter] = useState<string>('')
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false)
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
 
   // React Hook Form
-  const form = useForm<SupplierFormInputs>({
+  const form = useForm({
     resolver: zodResolver(supplierSchema),
     defaultValues: {
       business_name: '',
@@ -104,7 +105,15 @@ export default function Suppliers() {
     }
   })
 
-  const suppliers = (queryData?.data as Supplier[]) || []
+  const rawSuppliers = (queryData?.data as Supplier[]) || []
+  const suppliers = [...rawSuppliers]
+    .filter(sup => {
+      if (statusFilter === 'active') return sup.is_active
+      if (statusFilter === 'inactive') return !sup.is_active
+      return true
+    })
+    .sort((a, b) => (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1))
+
   const pagination = queryData?.meta || { current_page: 1, last_page: 1, total: 0 }
 
   // Mutations
@@ -282,6 +291,17 @@ export default function Suppliers() {
       search={search}
       onSearchChange={(val) => { setSearch(val); setPage(1); }}
       searchPlaceholder="Buscar por razón social, teléfono o correo..."
+      extraActions={
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="px-4 py-2.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-stone-200 outline-none text-xs text-text-main bg-surface font-semibold"
+        >
+          <option value="">-- Todos los estados --</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+      }
     >
       <CrudTable
         data={suppliers}

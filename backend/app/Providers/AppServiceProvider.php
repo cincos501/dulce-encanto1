@@ -4,10 +4,34 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\AI\Contracts\AudioTranscriberInterface;
+use App\AI\Contracts\ConversationMemoryInterface;
+use App\AI\Contracts\ImageAnalyzerInterface;
+use App\AI\Contracts\LLMProviderInterface;
+use App\AI\Contracts\ToolInterface;
+use App\AI\Media\GeminiAudioTranscriber;
+use App\AI\Media\GeminiVisionAnalyzer;
+use App\AI\Media\IncomingMediaResolver;
+use App\AI\Media\OpenAIWhisperTranscriber;
+use App\AI\Memory\RedisConversationMemory;
+use App\AI\Providers\GeminiProvider;
+use App\AI\Providers\GroqProvider;
+use App\AI\Providers\OpenAIProvider;
+use App\AI\Registry\ToolRegistry;
+use App\Baneco\Contracts\EncryptionServiceInterface;
+use App\Baneco\Services\Aes256EncryptionService;
+use App\Events\ReadyStockOutOfStock;
+use App\Events\SupplyStockLow;
+use App\Listeners\HandleReadyStockOutOfStock;
+use App\Listeners\HandleSupplyStockLow;
+use App\Models\Order;
+use App\Observers\OrderObserver;
 use App\Repositories\CategoryRepository;
 use App\Repositories\CategoryRepositoryInterface;
 use App\Repositories\ExtraRepository;
 use App\Repositories\ExtraRepositoryInterface;
+use App\Repositories\OrderRepository;
+use App\Repositories\OrderRepositoryInterface;
 use App\Repositories\ProductImageRepository;
 use App\Repositories\ProductImageRepositoryInterface;
 use App\Repositories\ProductRepository;
@@ -16,34 +40,22 @@ use App\Repositories\ProductVariantRepository;
 use App\Repositories\ProductVariantRepositoryInterface;
 use App\Repositories\PromotionRepository;
 use App\Repositories\PromotionRepositoryInterface;
-use App\Repositories\UserRepository;
-use App\Repositories\UserRepositoryInterface;
+use App\Repositories\RecipeRepository;
+use App\Repositories\RecipeRepositoryInterface;
+use App\Repositories\RedisWhatsAppSessionRepository;
+use App\Repositories\ReportRepository;
+use App\Repositories\ReportRepositoryInterface;
 use App\Repositories\SupplierRepository;
 use App\Repositories\SupplierRepositoryInterface;
 use App\Repositories\SupplyRepository;
 use App\Repositories\SupplyRepositoryInterface;
-use App\Repositories\RecipeRepository;
-use App\Repositories\RecipeRepositoryInterface;
-use App\Repositories\OrderRepository;
-use App\Repositories\OrderRepositoryInterface;
-use App\Repositories\ReportRepositoryInterface;
-use App\Repositories\ReportRepository;
+use App\Repositories\UserRepository;
+use App\Repositories\UserRepositoryInterface;
 use App\Repositories\WhatsAppSessionRepositoryInterface;
-use App\Repositories\RedisWhatsAppSessionRepository;
-use App\AI\Contracts\ConversationMemoryInterface;
-use App\AI\Memory\RedisConversationMemory;
-use App\AI\Contracts\LLMProviderInterface;
-use App\AI\Providers\GroqProvider;
-use App\AI\Registry\ToolRegistry;
-use App\AI\Tools\Catalog\SearchProductsTool;
-use App\AI\Tools\Catalog\SearchCategoriesTool;
-use App\AI\Tools\Catalog\SearchVariantsTool;
-use App\AI\Tools\Catalog\SearchExtrasTool;
-use App\AI\Tools\Promotions\SearchPromotionsTool;
-use App\AI\Tools\Business\GetBusinessInfoTool;
-use App\AI\Tools\Business\GetOpeningHoursTool;
+use App\Services\ChatwootMediaService;
 use App\Services\StorageServiceInterface;
 use App\Services\SupabaseStorageService;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -70,12 +82,42 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(LLMProviderInterface::class, function ($app) {
             $provider = config('ai.provider');
             if ($provider === 'openai') {
-                return $app->make(\App\AI\Providers\OpenAIProvider::class);
+                return $app->make(OpenAIProvider::class);
             }
             if ($provider === 'gemini') {
-                return $app->make(\App\AI\Providers\GeminiProvider::class);
+                return $app->make(GeminiProvider::class);
             }
-            return $app->make(\App\AI\Providers\GroqProvider::class);
+
+            return $app->make(GroqProvider::class);
+        });
+
+        // Transcripción de audios entrantes (driver configurable; null = desactivado).
+        $this->app->bind(AudioTranscriberInterface::class, function () {
+            return match (config('ai.media.transcription.driver')) {
+                'openai_whisper' => new OpenAIWhisperTranscriber,
+                'gemini' => new GeminiAudioTranscriber,
+                default => null,
+            };
+        });
+
+        // Análisis visual de imágenes entrantes (opcional; null = desactivado).
+        $this->app->bind(ImageAnalyzerInterface::class, function () {
+            if (! config('ai.media.vision.enabled')) {
+                return null;
+            }
+
+            return match (config('ai.media.vision.driver')) {
+                'gemini' => new GeminiVisionAnalyzer,
+                default => null,
+            };
+        });
+
+        $this->app->singleton(IncomingMediaResolver::class, function ($app) {
+            return new IncomingMediaResolver(
+                $app->make(ChatwootMediaService::class),
+                $app->make(AudioTranscriberInterface::class),
+                $app->make(ImageAnalyzerInterface::class),
+            );
         });
 
         // Auto-discover and register all AI Tools under app/AI/Tools
@@ -87,13 +129,13 @@ class AppServiceProvider extends ServiceProvider
                     $filePath = $file->getRealPath();
                     $normalizedToolsPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $toolsPath);
                     $normalizedFilePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $filePath);
-                    
+
                     $relativePath = str_replace([$normalizedToolsPath, '.php'], ['', ''], $normalizedFilePath);
                     $relativePath = ltrim($relativePath, DIRECTORY_SEPARATOR);
-                    
-                    $className = 'App\\AI\\Tools\\' . str_replace(DIRECTORY_SEPARATOR, '\\', $relativePath);
-                    
-                    if (class_exists($className) && is_subclass_of($className, \App\AI\Contracts\ToolInterface::class)) {
+
+                    $className = 'App\\AI\\Tools\\'.str_replace(DIRECTORY_SEPARATOR, '\\', $relativePath);
+
+                    if (class_exists($className) && is_subclass_of($className, ToolInterface::class)) {
                         $this->app->singleton($className);
                         $this->app->tag($className, 'ai_tools');
                     }
@@ -106,6 +148,7 @@ class AppServiceProvider extends ServiceProvider
             foreach ($app->tagged('ai_tools') as $tool) {
                 $tools[] = $tool;
             }
+
             return new ToolRegistry($tools);
         });
 
@@ -113,7 +156,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(StorageServiceInterface::class, SupabaseStorageService::class);
 
         // Bind Baneco Encryption Service
-        $this->app->singleton(\App\Baneco\Contracts\EncryptionServiceInterface::class, \App\Baneco\Services\Aes256EncryptionService::class);
+        $this->app->singleton(EncryptionServiceInterface::class, Aes256EncryptionService::class);
     }
 
     /**
@@ -121,16 +164,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \App\Models\Order::observe(\App\Observers\OrderObserver::class);
+        Order::observe(OrderObserver::class);
 
-        \Illuminate\Support\Facades\Event::listen(
-            \App\Events\ReadyStockOutOfStock::class,
-            [\App\Listeners\HandleReadyStockOutOfStock::class, 'handle']
+        Event::listen(
+            ReadyStockOutOfStock::class,
+            [HandleReadyStockOutOfStock::class, 'handle']
         );
 
-        \Illuminate\Support\Facades\Event::listen(
-            \App\Events\SupplyStockLow::class,
-            [\App\Listeners\HandleSupplyStockLow::class, 'handle']
+        Event::listen(
+            SupplyStockLow::class,
+            [HandleSupplyStockLow::class, 'handle']
         );
     }
 }

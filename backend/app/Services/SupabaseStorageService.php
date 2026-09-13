@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -43,12 +44,16 @@ class SupabaseStorageService implements StorageServiceInterface
             $path
         );
 
-        $response = Http::withHeaders([
-            'apikey' => $this->secretKey,
-            'Authorization' => 'Bearer '.$this->secretKey,
-        ])
-            ->withBody(file_get_contents($file->getRealPath()), $file->getMimeType())
-            ->post($endpoint);
+        try {
+            $response = Http::withHeaders([
+                'apikey' => $this->secretKey,
+                'Authorization' => 'Bearer '.$this->secretKey,
+            ])
+                ->withBody(file_get_contents($file->getRealPath()), $file->getMimeType())
+                ->post($endpoint);
+        } catch (ConnectionException $e) {
+            throw new \RuntimeException('No se pudo conectar con el servidor de imágenes de Supabase (Error DNS/Sin conexión a internet). Verifique su conexión a internet o el estado del proyecto en Supabase.');
+        }
 
         if ($response->failed()) {
             throw new \RuntimeException('Error al subir el archivo a Supabase Storage: '.($response->json('message') ?? $response->body()));

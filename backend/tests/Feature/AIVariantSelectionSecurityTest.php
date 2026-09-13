@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Orchestrators\ConversationOrchestrator;
-use App\AI\Services\AIConversationService;
 use App\AI\Contracts\ConversationMemoryInterface;
-use App\Services\ChatwootService;
+use App\AI\Contracts\ToolInterface;
+use App\AI\DTO\AIResponseDTO;
+use App\AI\Orchestrators\ConversationOrchestrator;
+use App\AI\Orders\OrderDraftManager;
 use App\AI\Registry\ToolRegistry;
+use App\AI\Services\AIConversationService;
 use App\DTO\ChatwootMessageDTO;
 use App\Models\WhatsAppSession;
-use App\AI\DTO\AIResponseDTO;
-use App\AI\Contracts\ToolInterface;
-use App\AI\Orders\OrderDraftManager;
+use App\Services\ChatwootService;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -29,7 +29,7 @@ class AIVariantSelectionSecurityTest extends TestCase
 
         // User history contains only asking for a product
         $history = [
-            ['role' => 'user', 'content' => 'Hola, quiero una torta tres leches']
+            ['role' => 'user', 'content' => 'Hola, quiero una torta tres leches'],
         ];
 
         $schema = $registry->getToolsSchema($history, false);
@@ -67,11 +67,11 @@ class AIVariantSelectionSecurityTest extends TestCase
                     [
                         'id' => 'call_sv_123',
                         'type' => 'function',
-                        'function' => ['name' => 'search_variants', 'arguments' => '{"product_id":5}']
-                    ]
+                        'function' => ['name' => 'search_variants', 'arguments' => '{"product_id":5}'],
+                    ],
                 ]],
-                ['role' => 'tool', 'name' => 'search_variants', 'tool_call_id' => 'call_sv_123', 'content' => '- [ID Variante: 10] Torta Tres Leches - Presentación: Mediana']
-            ]
+                ['role' => 'tool', 'name' => 'search_variants', 'tool_call_id' => 'call_sv_123', 'content' => '- [ID Variante: 10] Torta Tres Leches - Presentación: Mediana'],
+            ],
         ]);
 
         $mockMemory = $this->mock(ConversationMemoryInterface::class, function (MockInterface $mock) use ($session) {
@@ -87,14 +87,14 @@ class AIVariantSelectionSecurityTest extends TestCase
             $mock->shouldReceive('addMessageRaw')
                 ->once()
                 ->with($session, \Mockery::on(function ($msg) {
-                    return $msg['role'] === 'assistant' && !empty($msg['tool_calls']);
+                    return $msg['role'] === 'assistant' && ! empty($msg['tool_calls']);
                 }));
 
             $mock->shouldReceive('addMessageRaw')
                 ->once()
                 ->with($session, \Mockery::on(function ($msg) {
-                    return $msg['role'] === 'tool' && 
-                           $msg['name'] === 'get_variant_extras' && 
+                    return $msg['role'] === 'tool' &&
+                           $msg['name'] === 'get_variant_extras' &&
                            str_contains($msg['content'], 'ERROR DE FLUJO');
                 }));
 
@@ -116,9 +116,9 @@ class AIVariantSelectionSecurityTest extends TestCase
                         'id' => 'call_gve_123',
                         'function' => [
                             'name' => 'get_variant_extras',
-                            'arguments' => '{"variant_id":10}'
-                        ]
-                    ]
+                            'arguments' => '{"variant_id":10}',
+                        ],
+                    ],
                 ]));
 
             // Second call after interceptor returns the textual instructions to the user
@@ -128,6 +128,7 @@ class AIVariantSelectionSecurityTest extends TestCase
         });
 
         $mockChatwootService = $this->mock(ChatwootService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('toggleTypingStatus')->zeroOrMoreTimes();
             $mock->shouldReceive('sendMessage')
                 ->once()
                 ->with(123, 'Selecciona primero una variante por favor.');
@@ -136,7 +137,7 @@ class AIVariantSelectionSecurityTest extends TestCase
         // Use real registry but mock the variant extras tool call execution
         $registry = $this->app->make(ToolRegistry::class);
 
-        $mockDraft = (object)['items' => []];
+        $mockDraft = (object) ['items' => []];
         $mockDraftManager = $this->mock(OrderDraftManager::class, function (MockInterface $mock) use ($mockDraft) {
             $mock->shouldReceive('getDraft')->andReturn($mockDraft);
         });
@@ -179,12 +180,12 @@ class AIVariantSelectionSecurityTest extends TestCase
                     [
                         'id' => 'call_sv_123',
                         'type' => 'function',
-                        'function' => ['name' => 'search_variants', 'arguments' => '{"product_id":5}']
-                    ]
+                        'function' => ['name' => 'search_variants', 'arguments' => '{"product_id":5}'],
+                    ],
                 ]],
                 ['role' => 'tool', 'name' => 'search_variants', 'tool_call_id' => 'call_sv_123', 'content' => '- [ID Variante: 10] Torta Tres Leches - Presentación: Mediana'],
-                ['role' => 'user', 'content' => 'Quiero la mediana'] // User selected it!
-            ]
+                ['role' => 'user', 'content' => 'Quiero la mediana'], // User selected it!
+            ],
         ]);
 
         $mockMemory = $this->mock(ConversationMemoryInterface::class, function (MockInterface $mock) use ($session) {
@@ -199,16 +200,16 @@ class AIVariantSelectionSecurityTest extends TestCase
             $mock->shouldReceive('addMessageRaw')
                 ->once()
                 ->with($session, \Mockery::on(function ($msg) {
-                    return $msg['role'] === 'assistant' && !empty($msg['tool_calls']);
+                    return $msg['role'] === 'assistant' && ! empty($msg['tool_calls']);
                 }));
 
             // Expect to save raw tool response with SUCCESS context (no error)
             $mock->shouldReceive('addMessageRaw')
                 ->once()
                 ->with($session, \Mockery::on(function ($msg) {
-                    return $msg['role'] === 'tool' && 
-                           $msg['name'] === 'get_variant_extras' && 
-                           !str_contains($msg['content'], 'ERROR DE FLUJO');
+                    return $msg['role'] === 'tool' &&
+                           $msg['name'] === 'get_variant_extras' &&
+                           ! str_contains($msg['content'], 'ERROR DE FLUJO');
                 }));
 
             $mock->shouldReceive('addMessage')
@@ -228,9 +229,9 @@ class AIVariantSelectionSecurityTest extends TestCase
                         'id' => 'call_gve_123',
                         'function' => [
                             'name' => 'get_variant_extras',
-                            'arguments' => '{"variant_id":10}'
-                        ]
-                    ]
+                            'arguments' => '{"variant_id":10}',
+                        ],
+                    ],
                 ]));
 
             $mock->shouldReceive('generateReply')
@@ -239,6 +240,7 @@ class AIVariantSelectionSecurityTest extends TestCase
         });
 
         $mockChatwootService = $this->mock(ChatwootService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('toggleTypingStatus')->zeroOrMoreTimes();
             $mock->shouldReceive('sendMessage')
                 ->once()
                 ->with(123, 'Tiene chispas.');
@@ -259,7 +261,7 @@ class AIVariantSelectionSecurityTest extends TestCase
         $registry = $this->app->make(ToolRegistry::class);
         $registry->register($mockTool);
 
-        $mockDraft = (object)['items' => []];
+        $mockDraft = (object) ['items' => []];
         $mockDraftManager = $this->mock(OrderDraftManager::class, function (MockInterface $mock) use ($mockDraft) {
             $mock->shouldReceive('getDraft')->andReturn($mockDraft);
         });

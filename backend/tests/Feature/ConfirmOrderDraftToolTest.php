@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Tools\Orders\ConfirmOrderDraftTool;
 use App\AI\Orders\OrderDraftManager;
+use App\AI\Tools\Orders\ConfirmOrderDraftTool;
 use App\Models\Category;
-use App\Models\Product;
-use App\Models\ProductVariant;
 use App\Models\Extra;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\OrderItemExtra;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Repositories\WhatsAppSessionRepositoryInterface;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ConfirmOrderDraftToolTest extends TestCase
@@ -23,6 +21,7 @@ class ConfirmOrderDraftToolTest extends TestCase
     use RefreshDatabase;
 
     protected OrderDraftManager $draftManager;
+
     protected string $phone = '59170012345';
 
     protected function setUp(): void
@@ -31,7 +30,8 @@ class ConfirmOrderDraftToolTest extends TestCase
 
         // Bind an in-memory session repository to isolate test from Redis dependencies
         $this->app->singleton(WhatsAppSessionRepositoryInterface::class, function () {
-            return new class implements WhatsAppSessionRepositoryInterface {
+            return new class implements WhatsAppSessionRepositoryInterface
+            {
                 protected array $store = [];
 
                 public function get(string $phone): ?array
@@ -60,13 +60,13 @@ class ConfirmOrderDraftToolTest extends TestCase
         // 1. Seed catalog data
         $category = Category::create([
             'name' => 'Pasteles',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $product = Product::create([
             'category_id' => $category->id,
             'name' => 'Torta Tres Leches',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $variant = ProductVariant::create([
@@ -75,12 +75,12 @@ class ConfirmOrderDraftToolTest extends TestCase
             'price' => 120.00,
             'sku' => 'MED-TL',
             'serves_people' => 10,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $extra = Extra::create([
             'name' => 'Crema Extra',
-            'is_active' => true
+            'is_active' => true,
         ]);
         $variant->extras()->attach($extra->id, ['price' => 15.00]);
 
@@ -105,7 +105,7 @@ class ConfirmOrderDraftToolTest extends TestCase
 
         // 3. Instantiate tool and confirm draft
         $tool = $this->app->make(ConfirmOrderDraftTool::class);
-        
+
         $deliveryDate = Carbon::now()->addDays(2)->format('Y-m-d'); // 48 hours later (valid)
         $deliveryTime = '15:30';
 
@@ -115,7 +115,7 @@ class ConfirmOrderDraftToolTest extends TestCase
             'address' => 'Av. San Martín #456',
             'delivery_date' => $deliveryDate,
             'delivery_time' => $deliveryTime,
-            'observations' => 'Escribir Feliz Cumpleaños'
+            'observations' => 'Escribir Feliz Cumpleaños',
         ], ['phone' => $this->phone]);
 
         // 4. Assert order creation in MySQL
@@ -153,13 +153,13 @@ class ConfirmOrderDraftToolTest extends TestCase
         // 1. Seed catalog data
         $category = Category::create([
             'name' => 'Pasteles',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $product = Product::create([
             'category_id' => $category->id,
             'name' => 'Torta de Chocolate',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $variant = ProductVariant::create([
@@ -168,7 +168,7 @@ class ConfirmOrderDraftToolTest extends TestCase
             'price' => 80.00,
             'sku' => 'PEQ-CHOC',
             'serves_people' => 5,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // 2. Prepare draft
@@ -196,8 +196,8 @@ class ConfirmOrderDraftToolTest extends TestCase
         ], ['phone' => $this->phone]);
 
         // 3. Assert rejection
-        $this->assertStringContainsString('nuestras tortas requieren mínimo 24 horas de anticipación', $response);
-        
+        $this->assertStringContainsString('requieren mínimo 24 horas de anticipación', $response);
+
         // Assert order was NOT created and Redis still exists
         $this->assertEquals(0, Order::count());
         $this->assertTrue($this->draftManager->exists($this->phone));
@@ -208,13 +208,13 @@ class ConfirmOrderDraftToolTest extends TestCase
         // 1. Seed catalog data
         $category = Category::create([
             'name' => 'Otros',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $product = Product::create([
             'category_id' => $category->id,
             'name' => 'Galletas de Avena',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $variant = ProductVariant::create([
@@ -223,7 +223,7 @@ class ConfirmOrderDraftToolTest extends TestCase
             'price' => 15.00,
             'sku' => 'GAL-AV',
             'serves_people' => 1,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // 2. Prepare draft

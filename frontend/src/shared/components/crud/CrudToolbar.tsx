@@ -4,8 +4,8 @@ import { CrudPermissionGuard } from './CrudPermissionGuard'
 import { FiPlus } from 'react-icons/fi'
 
 export interface CrudToolbarProps {
-  search: string;
-  onSearchChange: (value: string) => void;
+  search?: string;
+  onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   createLabel?: string;
   createPermission?: string;
@@ -29,9 +29,9 @@ export const CrudToolbar: React.FC<CrudToolbarProps> = ({
         <div className="w-full sm:max-w-md">
           <SearchInput
             placeholder={searchPlaceholder}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onClear={() => onSearchChange('')}
+            value={search ?? ''}
+            onChange={(e) => onSearchChange?.(e.target.value)}
+            onClear={() => onSearchChange?.('')}
           />
         </div>
         {/* Optional Filters */}

@@ -10,6 +10,7 @@ const typographyVariants = cva(
         h1: 'font-heading font-black text-3xl sm:text-4xl lg:text-5xl leading-tight tracking-tight text-primary',
         h2: 'font-heading font-black text-2xl sm:text-3xl leading-tight tracking-tight text-primary',
         h3: 'font-heading font-bold text-lg sm:text-xl leading-snug text-primary',
+        h4: 'font-heading font-bold text-base sm:text-lg leading-snug text-primary',
         body: 'font-sans text-xs leading-relaxed text-text-sub',
         caption: 'font-sans text-[10px] text-text-sub/70 font-bold uppercase tracking-wider',
         label: 'font-sans text-xs font-bold text-primary'

@@ -14,9 +14,9 @@ use App\Http\Resources\ReportSummaryResource;
 use App\Http\Resources\SalesReportResource;
 use App\Http\Resources\SupplyReportResource;
 use App\Services\ReportService;
-use Symfony\Component\HttpFoundation\StreamedResponse;
-use Illuminate\Http\Response;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -106,13 +106,9 @@ class ReportController extends Controller
         $rows = [];
 
         foreach ($orders as $o) {
-            $deliveryType = 'Retiro en tienda';
-            $email = $o->customer?->email;
-            if ($email && str_starts_with(trim($email), '{')) {
-                $parsed = json_decode($email, true);
-                if (is_array($parsed)) {
-                    $deliveryType = $parsed['delivery_type'] ?? 'Retiro en tienda';
-                }
+            $deliveryType = $o->delivery_type ?? 'Retiro en tienda';
+            if ($deliveryType === 'RECOJO_TIENDA') {
+                $deliveryType = 'Retiro en tienda';
             }
 
             $rows[] = [
@@ -125,7 +121,7 @@ class ReportController extends Controller
             ];
         }
 
-        return $this->reportService->exportCsv($headers, $rows, 'reporte_ventas_' . date('Ymd_His') . '.csv');
+        return $this->reportService->exportCsv($headers, $rows, 'reporte_ventas_'.date('Ymd_His').'.csv');
     }
 
     /**
@@ -144,7 +140,7 @@ class ReportController extends Controller
             'orders' => $orders,
         ];
 
-        return $this->reportService->exportPdf('reports.sales_pdf', $data, 'reporte_ventas_' . date('Ymd_His') . '.pdf');
+        return $this->reportService->exportPdf('reports.sales_pdf', $data, 'reporte_ventas_'.date('Ymd_His').'.pdf');
     }
 
     /**
@@ -167,7 +163,7 @@ class ReportController extends Controller
             ];
         }
 
-        return $this->reportService->exportCsv($headers, $rows, 'reporte_productos_mas_vendidos_' . date('Ymd_His') . '.csv');
+        return $this->reportService->exportCsv($headers, $rows, 'reporte_productos_mas_vendidos_'.date('Ymd_His').'.csv');
     }
 
     /**
@@ -184,7 +180,7 @@ class ReportController extends Controller
             'products' => $products,
         ];
 
-        return $this->reportService->exportPdf('reports.products_pdf', $data, 'reporte_productos_mas_vendidos_' . date('Ymd_His') . '.pdf');
+        return $this->reportService->exportPdf('reports.products_pdf', $data, 'reporte_productos_mas_vendidos_'.date('Ymd_His').'.pdf');
     }
 
     /**
@@ -207,7 +203,7 @@ class ReportController extends Controller
             ];
         }
 
-        return $this->reportService->exportCsv($headers, $rows, 'reporte_insumos_' . date('Ymd_His') . '.csv');
+        return $this->reportService->exportCsv($headers, $rows, 'reporte_insumos_'.date('Ymd_His').'.csv');
     }
 
     /**
@@ -221,7 +217,7 @@ class ReportController extends Controller
             'supplies' => $supplies,
         ];
 
-        return $this->reportService->exportPdf('reports.supplies_pdf', $data, 'reporte_insumos_' . date('Ymd_His') . '.pdf');
+        return $this->reportService->exportPdf('reports.supplies_pdf', $data, 'reporte_insumos_'.date('Ymd_His').'.pdf');
     }
 
     /**
@@ -236,13 +232,9 @@ class ReportController extends Controller
         $rows = [];
 
         foreach ($orders as $o) {
-            $deliveryType = 'Retiro en tienda';
-            $email = $o->customer?->email;
-            if ($email && str_starts_with(trim($email), '{')) {
-                $parsed = json_decode($email, true);
-                if (is_array($parsed)) {
-                    $deliveryType = $parsed['delivery_type'] ?? 'Retiro en tienda';
-                }
+            $deliveryType = $o->delivery_type ?? 'Retiro en tienda';
+            if ($deliveryType === 'RECOJO_TIENDA') {
+                $deliveryType = 'Retiro en tienda';
             }
 
             $rows[] = [
@@ -255,7 +247,7 @@ class ReportController extends Controller
             ];
         }
 
-        return $this->reportService->exportCsv($headers, $rows, 'reporte_produccion_' . date('Ymd_His') . '.csv');
+        return $this->reportService->exportCsv($headers, $rows, 'reporte_produccion_'.date('Ymd_His').'.csv');
     }
 
     /**
@@ -274,6 +266,6 @@ class ReportController extends Controller
             'orders' => $orders,
         ];
 
-        return $this->reportService->exportPdf('reports.production_pdf', $data, 'reporte_produccion_' . date('Ymd_His') . '.pdf');
+        return $this->reportService->exportPdf('reports.production_pdf', $data, 'reporte_produccion_'.date('Ymd_His').'.pdf');
     }
 }

@@ -32,7 +32,7 @@ interface MenuItem {
   path: string;
   icon: React.ComponentType<any>;
   permission: string | null;
-  section: 'catalog' | 'sales' | 'admin' | 'none';
+  section: 'catalog' | 'inventory' | 'sales' | 'admin' | 'none';
 }
 
 export default function AdminLayout() {

@@ -28,10 +28,17 @@ class GetBusinessInfoTool implements ToolInterface
 
     public function execute(array $arguments, array $context = []): string
     {
-        return "Información General de la Repostería Dulce Encanto:\n" .
-               "- **Descripción**: Repostería de Tarija, especializada en tortas de chocolate, tres leches, queques y pasteles personalizados para toda ocasión. Horneamos felicidad para cada ocasión.\n" .
-               "- **Dirección**: Calle Los Claveles #456, Cochabamba, Bolivia\n" .
-               "- **Teléfono de contacto**: +591 4 4567890 / +591 70012345\n" .
-               "- **Divisa oficial**: Bolivianos (Bs.)";
+        $name = (string) config('business.name', 'Dulce Encanto');
+        $description = (string) config('business.description', '');
+        $address = (string) config('business.location.address', '');
+        $mapsUrl = (string) config('business.location.maps_url', '');
+        $phone = (string) config('business.phone', '');
+
+        return "Información General de la Repostería {$name}:\n".
+               "- **Descripción**: {$description}\n".
+               "- **Dirección**: {$address}\n".
+               "- **Google Maps**: {$mapsUrl}\n".
+               "- **Teléfono de contacto**: {$phone}\n".
+               '- **Divisa oficial**: Bolivianos (Bs.)';
     }
 }
