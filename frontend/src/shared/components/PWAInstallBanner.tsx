@@ -99,26 +99,26 @@ export default function PWAInstallBanner() {
 
       {/* PWA INSTALL PROMPT FLOATING BANNER */}
       {showInstallBanner && deferredPrompt && (
-        <div className="fixed bottom-5 right-5 max-w-md bg-surface border border-primary/20 rounded-xl p-4 shadow-xl z-50 animate-bounce-in flex items-center gap-3 bg-stone-900 text-white font-sans border-l-4 border-l-primary">
-          <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
-            <FiDownload className="text-primary text-xl" />
+        <div className="fixed bottom-5 right-5 max-w-md bg-stone-900/95 backdrop-blur-md border border-stone-800 rounded-2xl p-4 shadow-2xl z-50 flex items-center gap-3.5 text-stone-100 font-sans animate-bounce-in">
+          <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+            <FiDownload className="text-amber-400 text-xl" />
           </div>
-          <div className="flex-1 text-xs space-y-0.5">
-            <h4 className="font-bold text-white text-sm">Instalar App Dulce Encanto</h4>
-            <p className="text-stone-300 text-[11px]">
+          <div className="flex-1 min-w-0 pr-2">
+            <h4 className="font-bold text-white text-sm leading-tight">Instalar App Dulce Encanto</h4>
+            <p className="text-stone-400 text-[11px] leading-normal mt-0.5">
               Accede rápido desde tu pantalla de inicio y navega por el catálogo sin conexión.
             </p>
           </div>
-          <div className="flex flex-col gap-1.5 shrink-0">
+          <div className="flex flex-col gap-1.5 shrink-0 items-center">
             <button
               onClick={handleInstallClick}
-              className="bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 shadow-sm"
+              className="bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 shadow-md shadow-amber-950/40 cursor-pointer w-full text-center"
             >
               Instalar
             </button>
             <button
               onClick={dismissBanner}
-              className="text-stone-400 hover:text-white text-[10px] text-center"
+              className="text-stone-400 hover:text-stone-200 text-[11px] font-medium transition-colors cursor-pointer text-center py-0.5"
             >
               Ahora no
             </button>

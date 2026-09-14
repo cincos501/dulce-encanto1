@@ -59,23 +59,23 @@ export default function Navbar({ cartCount = 0, onCartClick }: NavbarProps) {
           {/* Theme Toggle (Desktop) */}
           <button
             onClick={toggleTheme}
-            className="relative w-12 h-6 bg-stone-200 dark:bg-stone-800 rounded-full flex items-center justify-between px-1 cursor-pointer transition-all duration-300 border border-border shadow-inner focus:outline-none focus:ring-2 focus:ring-primary/20 shrink-0"
+            className="relative w-12 h-6 bg-stone-200 dark:bg-stone-700 rounded-full flex items-center justify-between px-1 cursor-pointer transition-all duration-300 border border-stone-300 dark:border-stone-600 shadow-inner focus:outline-none shrink-0"
             title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           >
             {/* Sliding knob with icon */}
-            <div className={`w-4 h-4 rounded-full bg-white dark:bg-stone-900 shadow-md border border-stone-200 dark:border-stone-700 flex items-center justify-center transition-transform duration-300 ${
+            <div className={`w-4 h-4 rounded-full bg-white dark:bg-stone-900 shadow-md border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-transform duration-300 ${
               theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
             }`}>
               {theme === 'dark' ? (
-                <FiSun className="w-2.5 h-2.5 text-amber-500 fill-amber-500 rotate-12 transition-transform duration-500" />
+                <FiSun className="w-2.5 h-2.5 text-amber-400 fill-amber-400 rotate-12 transition-transform duration-500" />
               ) : (
-                <FiMoon className="w-2.5 h-2.5 text-stone-755 dark:text-stone-300 -rotate-12 transition-transform duration-500" />
+                <FiMoon className="w-2.5 h-2.5 text-stone-700 -rotate-12 transition-transform duration-500" />
               )}
             </div>
             {/* Inactive background icons */}
-            <div className="absolute inset-0 flex items-center justify-between px-1.5 pointer-events-none text-text-sub/30">
-              <FiSun className={`w-2.5 h-2.5 ${theme === 'dark' ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`} />
-              <FiMoon className={`w-2.5 h-2.5 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`} />
+            <div className="absolute inset-0 flex items-center justify-between px-1.5 pointer-events-none">
+              <FiSun className={`w-2.5 h-2.5 text-amber-500 ${theme === 'dark' ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`} />
+              <FiMoon className={`w-2.5 h-2.5 text-stone-400 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`} />
             </div>
           </button>
 
@@ -93,7 +93,7 @@ export default function Navbar({ cartCount = 0, onCartClick }: NavbarProps) {
           
           <Link 
             to="/login" 
-            className="hidden sm:inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold hover:bg-stone-850 dark:hover:bg-stone-155 transition-all duration-200 active:scale-95 text-xs uppercase tracking-wider font-sans"
+            className="hidden sm:inline-flex items-center gap-1.5 bg-stone-900 hover:bg-stone-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white px-4 py-2 rounded-lg font-bold transition-all duration-200 active:scale-95 text-xs uppercase tracking-wider font-sans shadow-sm"
           >
             <FiUser className="text-sm shrink-0" />
             <span>Ingresar</span>
@@ -102,7 +102,7 @@ export default function Navbar({ cartCount = 0, onCartClick }: NavbarProps) {
           {/* Hamburger Menu (Mobile) */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 text-text-sub hover:text-primary hover:bg-stone-100 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
+            className="md:hidden p-2 text-text-sub hover:text-primary hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
             aria-label="Menu Principal"
           >
             {isMenuOpen ? <FiX className="text-xl" /> : <FiMenu className="text-xl" />}
@@ -112,12 +112,12 @@ export default function Navbar({ cartCount = 0, onCartClick }: NavbarProps) {
 
       {/* MOBILE DRAWER OVERLAY */}
       {isMenuOpen && (
-        <div className="fixed inset-0 top-20 bg-stone-900/20 backdrop-blur-sm md:hidden z-40 animate-fade-in" onClick={closeMenu}>
+        <div className="fixed inset-0 top-20 bg-stone-900/40 backdrop-blur-sm md:hidden z-40 animate-fade-in" onClick={closeMenu}>
           <div 
-            className="bg-surface border-b border-border p-6 space-y-6 animate-slide-down shadow-xl"
+            className="bg-surface border-b border-border p-6 space-y-6 animate-slide-down shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <nav className="flex flex-col gap-4 text-xs font-bold uppercase tracking-widest text-text-sub font-sans">
+            <nav className="flex flex-col gap-3 text-xs font-bold uppercase tracking-widest text-text-sub font-sans">
               {links.map((link) => {
                 const isActive = location.pathname === link.path
                 return (
@@ -125,7 +125,7 @@ export default function Navbar({ cartCount = 0, onCartClick }: NavbarProps) {
                     key={link.path} 
                     to={link.path} 
                     onClick={closeMenu}
-                    className={`py-2 px-3 rounded-lg transition-colors ${
+                    className={`py-2.5 px-3.5 rounded-xl transition-colors ${
                       isActive ? 'bg-secondary/15 text-primary font-black' : 'hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-primary'
                     }`}
                   >
@@ -135,36 +135,36 @@ export default function Navbar({ cartCount = 0, onCartClick }: NavbarProps) {
               })}
             </nav>
 
-            <div className="border-t border-border my-4" />
+            <div className="border-t border-border my-2" />
 
             {/* Theme Toggle (Mobile Row) */}
-            <div className="flex items-center justify-between bg-stone-50 dark:bg-stone-850 border border-border p-3.5 rounded-lg">
+            <div className="flex items-center justify-between bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700/80 p-4 rounded-xl shadow-sm">
               <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-primary block uppercase tracking-wider">Apariencia del Sitio</span>
-                <span className="text-[9px] text-text-sub block leading-none font-semibold">
+                <span className="text-[11px] font-bold text-stone-900 dark:text-stone-100 block uppercase tracking-wider">Apariencia del Sitio</span>
+                <span className="text-[10px] text-stone-500 dark:text-stone-400 block leading-none font-semibold">
                   {theme === 'dark' ? 'Modo Oscuro Activo' : 'Modo Claro Activo'}
                 </span>
               </div>
               
               <button
                 onClick={toggleTheme}
-                className="relative w-12 h-6 bg-stone-200 dark:bg-stone-800 rounded-full flex items-center justify-between px-1 cursor-pointer transition-all duration-300 border border-border shadow-inner focus:outline-none focus:ring-2 focus:ring-primary/20 shrink-0"
+                className="relative w-12 h-6 bg-stone-200 dark:bg-stone-700 rounded-full flex items-center justify-between px-1 cursor-pointer transition-all duration-300 border border-stone-300 dark:border-stone-600 shadow-inner focus:outline-none shrink-0"
                 title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
               >
                 {/* Sliding knob with icon */}
-                <div className={`w-4 h-4 rounded-full bg-white dark:bg-stone-900 shadow-md border border-stone-200 dark:border-stone-700 flex items-center justify-center transition-transform duration-300 ${
+                <div className={`w-4 h-4 rounded-full bg-white dark:bg-stone-900 shadow-md border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-transform duration-300 ${
                   theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
                 }`}>
                   {theme === 'dark' ? (
-                    <FiSun className="w-2.5 h-2.5 text-amber-500 fill-amber-500 rotate-12 transition-transform duration-500" />
+                    <FiSun className="w-2.5 h-2.5 text-amber-400 fill-amber-400 rotate-12 transition-transform duration-500" />
                   ) : (
-                    <FiMoon className="w-2.5 h-2.5 text-stone-755 dark:text-stone-300 -rotate-12 transition-transform duration-500" />
+                    <FiMoon className="w-2.5 h-2.5 text-stone-700 -rotate-12 transition-transform duration-500" />
                   )}
                 </div>
                 {/* Inactive background icons */}
-                <div className="absolute inset-0 flex items-center justify-between px-1.5 pointer-events-none text-text-sub/30">
-                  <FiSun className={`w-2.5 h-2.5 ${theme === 'dark' ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`} />
-                  <FiMoon className={`w-2.5 h-2.5 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`} />
+                <div className="absolute inset-0 flex items-center justify-between px-1.5 pointer-events-none">
+                  <FiSun className={`w-2.5 h-2.5 text-amber-500 ${theme === 'dark' ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`} />
+                  <FiMoon className={`w-2.5 h-2.5 text-stone-400 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`} />
                 </div>
               </button>
             </div>
@@ -172,7 +172,7 @@ export default function Navbar({ cartCount = 0, onCartClick }: NavbarProps) {
             <Link 
               to="/login" 
               onClick={closeMenu}
-              className="flex items-center justify-center gap-2 bg-primary text-primary-foreground w-full py-3 rounded-lg font-bold hover:bg-stone-850 dark:hover:bg-stone-155 transition-colors text-xs uppercase tracking-wider font-sans"
+              className="flex items-center justify-center gap-2 bg-stone-900 hover:bg-stone-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white w-full py-3.5 rounded-xl font-bold transition-all text-xs uppercase tracking-wider font-sans shadow-md"
             >
               <FiUser className="text-sm shrink-0" />
               <span>Acceso Personal</span>
