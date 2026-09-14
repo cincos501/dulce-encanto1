@@ -23,6 +23,23 @@ Route::prefix('v1')->group(function () {
     Route::get('/orders/history/{phoneToken}', [PublicOrderHistoryController::class, 'show'])
         ->name('orders.history.show');
 
+    // Utility endpoint to seed initial data in production
+    Route::get('/setup-seed', function () {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => '¡Base de datos sembrada con éxito!',
+                'output' => \Illuminate\Support\Facades\Artisan::output(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
     Route::prefix('auth')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('auth.forgot-password');
